@@ -17,6 +17,10 @@ type HTTPHandler func(w http.ResponseWriter, r *http.Request) Response
 func (fn HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	res := fn(w, r)
 
+	if res.StatusCode == 0 {
+		res.StatusCode = 200
+	}
+
 	if res.Error != nil {
 		log.Error().Err(res.Error).Msg(res.Message)
 		http.Error(w, res.Message, res.StatusCode)

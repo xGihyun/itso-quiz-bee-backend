@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 	"github.com/xGihyun/itso-quiz-bee/internal/auth"
+	"github.com/xGihyun/itso-quiz-bee/internal/lobby"
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 
@@ -18,9 +19,10 @@ import (
 )
 
 type Env struct {
-	user       user.Model
-	auth       auth.Model
-	middleware middleware.Model
+	user       user.Dependency
+	auth       auth.Dependency
+	lobby      lobby.Dependency
+	middleware middleware.Dependency
 }
 
 func main() {
@@ -45,9 +47,10 @@ func main() {
 	defer pool.Close()
 
 	env := &Env{
-		user:       user.Model{DB: pool},
-		auth:       auth.Model{DB: pool},
-		middleware: middleware.Model{Log: log.Logger},
+		user:       user.Dependency{DB: pool},
+		auth:       auth.Dependency{DB: pool},
+		lobby:      lobby.Dependency{DB: pool},
+		middleware: middleware.Dependency{Log: log.Logger},
 	}
 
 	router := http.NewServeMux()
@@ -59,6 +62,9 @@ func main() {
 
 	router.Handle("GET /users/{id}", api.HTTPHandler(env.user.GetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
+	
+	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.Create))
+	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.Join))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

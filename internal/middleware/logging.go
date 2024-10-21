@@ -8,15 +8,16 @@ import (
 	"github.com/rs/zerolog/hlog"
 )
 
-type Model struct {
+type Dependency struct {
 	Log zerolog.Logger
 }
 
-func (m Model) RequestLogger(next http.Handler) http.Handler {
-	h := hlog.NewHandler(m.Log)
+func (d Dependency) RequestLogger(next http.Handler) http.Handler {
+	h := hlog.NewHandler(d.Log)
 
 	access := hlog.AccessHandler(
 		func(r *http.Request, status, size int, duration time.Duration) {
+
 			hlog.FromRequest(r).Info().
 				Str("method", r.Method).
 				Str("url", r.URL.RequestURI()).

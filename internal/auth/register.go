@@ -7,23 +7,24 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-type Model struct {
+type Dependency struct {
 	DB *pgxpool.Pool
 }
 
-type RegisterData struct {
+type RegisterRequestData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func (m Model) Register(w http.ResponseWriter, r *http.Request) api.Response {
+func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Response {
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	// w.Header().Set("Content-Type", "application/json")
 	ctx := context.Background()
 
-	var data RegisterData
+	var data RegisterRequestData
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -39,7 +40,7 @@ func (m Model) Register(w http.ResponseWriter, r *http.Request) api.Response {
     VALUES ($1, $2, $3)
     `
 
-	if _, err := m.DB.Exec(ctx, sql, data.Email, data.Password, "player"); err != nil {
+	if _, err := d.DB.Exec(ctx, sql, data.Email, data.Password, user.Player); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusConflict,

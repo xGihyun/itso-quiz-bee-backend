@@ -1,8 +1,25 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TYPE "public"."lobby_status" AS ENUM('open', 'closed');--> statement-breakpoint
-CREATE TYPE "public"."quiz_question_variant" AS ENUM('multiple-choice', 'boolean', 'written');--> statement-breakpoint
-CREATE TYPE "public"."role" AS ENUM('player', 'admin');--> statement-breakpoint
+-- CREATE TYPE "public"."lobby_status" AS ENUM('open', 'closed');--> statement-breakpoint
+-- CREATE TYPE "public"."quiz_question_variant" AS ENUM('multiple-choice', 'boolean', 'written');--> statement-breakpoint
+-- CREATE TYPE "public"."role" AS ENUM('player', 'admin');--> statement-breakpoint
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'lobby_status') THEN
+        CREATE TYPE public.lobby_status AS ENUM('open', 'closed');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'quiz_question_variant') THEN
+        CREATE TYPE public.quiz_question_variant AS ENUM('multiple-choice', 'boolean', 'written');
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role') THEN
+        CREATE TYPE public.role AS ENUM('player', 'admin');
+    END IF;
+END $$;
+
+
 CREATE TABLE IF NOT EXISTS "lobbies" (
 	"lobby_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,

@@ -9,12 +9,12 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-type LoginData struct {
+type LoginRequestData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-func (m Model) Login(w http.ResponseWriter, r *http.Request) api.Response {
+func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -30,7 +30,7 @@ func (m Model) Login(w http.ResponseWriter, r *http.Request) api.Response {
 
 	ctx := context.Background()
 
-	var data LoginData
+	var data LoginRequestData
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -46,7 +46,7 @@ func (m Model) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	WHERE email = ($1) AND password = ($2)
     `
 
-	row := m.DB.QueryRow(ctx, sql, data.Email, data.Password)
+	row := d.DB.QueryRow(ctx, sql, data.Email, data.Password)
 
 	var user user.User
 

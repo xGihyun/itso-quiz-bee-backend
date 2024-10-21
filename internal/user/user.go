@@ -10,7 +10,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
-type Model struct {
+type Dependency struct {
 	DB *pgxpool.Pool
 }
 
@@ -27,7 +27,7 @@ type User struct {
 	Role   Role   `json:"role"`
 }
 
-func (m Model) Create(w http.ResponseWriter, r *http.Request) {
+func (d Dependency) Create(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	sql := `
@@ -35,7 +35,7 @@ func (m Model) Create(w http.ResponseWriter, r *http.Request) {
 	VALUES ($1, $2, $3)
 	`
 
-	if _, err := m.DB.Exec(ctx, sql, "gihyun@email.com", "password", Player); err != nil {
+	if _, err := d.DB.Exec(ctx, sql, "gihyun@email.com", "password", Player); err != nil {
 		log.Print("Something went wrong: ", err)
 		http.Error(w, "Something went wrong", 500)
 
@@ -46,7 +46,7 @@ func (m Model) Create(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (m Model) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
+func (d Dependency) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	w.Header().Set("Content-Type", "application/json")
 	ctx := context.Background()
 
@@ -54,7 +54,7 @@ func (m Model) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 
 	id := r.PathValue("id")
 
-	row := m.DB.QueryRow(ctx, query, id)
+	row := d.DB.QueryRow(ctx, query, id)
 
 	var user User
 
