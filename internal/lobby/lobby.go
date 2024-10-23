@@ -21,7 +21,7 @@ const (
 	Closed Status = "closed"
 )
 
-type CreateRequestData struct {
+type NewLobby struct {
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
 	Capacity    sql.NullInt16  `json:"capacity"`
@@ -36,7 +36,7 @@ const OTP_LENGTH = 6
 func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data CreateRequestData
+	var data NewLobby
 
 	decoder := json.NewDecoder(r.Body)
 

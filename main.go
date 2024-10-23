@@ -12,6 +12,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/auth"
 	"github.com/xGihyun/itso-quiz-bee/internal/lobby"
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
+	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 
 	"github.com/rs/zerolog"
@@ -22,6 +23,7 @@ type Env struct {
 	user       user.Dependency
 	auth       auth.Dependency
 	lobby      lobby.Dependency
+	quiz       quiz.Dependency
 	middleware middleware.Dependency
 }
 
@@ -50,6 +52,7 @@ func main() {
 		user:       user.Dependency{DB: pool},
 		auth:       auth.Dependency{DB: pool},
 		lobby:      lobby.Dependency{DB: pool},
+		quiz:       quiz.Dependency{DB: pool},
 		middleware: middleware.Dependency{Log: log.Logger},
 	}
 
@@ -62,9 +65,13 @@ func main() {
 
 	router.Handle("GET /users/{id}", api.HTTPHandler(env.user.GetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
-	
+
 	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.Create))
 	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.Join))
+
+	router.Handle("POST /quizzes", api.HTTPHandler(env.quiz.Create))
+	router.Handle("POST /quizzes/answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
+	router.Handle("GET /quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
