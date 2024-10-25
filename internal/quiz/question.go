@@ -2,8 +2,6 @@ package quiz
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5"
 )
 
 type QuestionVariant string
@@ -22,14 +20,14 @@ type NewQuestion struct {
 	Answers     []NewAnswer     `json:"answers"`
 }
 
-func CreateQuestion(tx pgx.Tx, ctx context.Context, question NewQuestion, quizID string) error {
+func (qs *QuizService) CreateQuestion(ctx context.Context, question NewQuestion, quizID string) error {
 	sql := `
 	INSERT INTO quiz_questions (content, variant, points, order_number, quiz_id)
 	VALUES ($1, $2, $3, $4, $5)
 	RETURNING quiz_question_id
 	`
 
-	row := tx.QueryRow(ctx, sql, question.Content, question.Variant, question.Points, question.OrderNumber, quizID)
+	row := qs.store.DB.QueryRow(ctx, sql, question.Content, question.Variant, question.Points, question.OrderNumber, quizID)
 
 	var questionID string
 
@@ -38,7 +36,7 @@ func CreateQuestion(tx pgx.Tx, ctx context.Context, question NewQuestion, quizID
 	}
 
 	for _, answer := range question.Answers {
-		if err := CreateAnswer(tx, ctx, answer, questionID); err != nil {
+		if err := qs.store.CreateAnswer(ctx, answer, questionID); err != nil {
 			return err
 		}
 	}

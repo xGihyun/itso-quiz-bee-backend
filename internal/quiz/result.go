@@ -2,7 +2,6 @@ package quiz
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
@@ -12,6 +11,12 @@ import (
 type Result struct {
 	Score  int16  `json:"score"`
 	UserID string `json:"user_id"`
+	// Answers []PlayerAnswer `json:"answers"`
+}
+
+type PlayerAnswer struct {
+	PlayerSelectedAnswerID string `json:"player_selected_answer_id"`
+	IsCorrect              bool   `json:"is_correct"`
 }
 
 func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Response {
@@ -21,20 +26,39 @@ func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Respo
 
 	// TODO:
 	// - Also get score from written answers and add it with selected answers
-	// - Put SQL queries in their own .sql files
+	// - Put SQL queries in their own .sql files maybe (?)
 
 	sql := `
-	WITH correct_answers AS (
+	WITH player_scores AS (
 		SELECT 
+			SUM(quiz_questions.points) AS score,
 			player_selected_answers.player_selected_answer_id,
 			player_selected_answers.user_id
 		FROM player_selected_answers
 		JOIN quiz_answers ON quiz_answers.quiz_answer_id = player_selected_answers.quiz_answer_id
 		JOIN quiz_questions ON quiz_questions.quiz_question_id = quiz_answers.quiz_question_id
 		WHERE quiz_answers.is_correct IS TRUE AND quiz_questions.quiz_id = ($1)
+		GROUP BY 
+			player_selected_answers.user_id, 
+			player_selected_answers.player_selected_answer_id
+	),
+	player_answers AS (
+		SELECT 
+			player_selected_answers.player_selected_answer_id,
+			player_selected_answers.user_id,
+			quiz_answers.is_correct,
+			quiz_questions.order_number,
+			quiz_questions.points
+		FROM player_selected_answers
+		JOIN quiz_answers ON quiz_answers.quiz_answer_id = player_selected_answers.quiz_answer_id
+		JOIN quiz_questions ON quiz_questions.quiz_question_id = quiz_answers.quiz_question_id
+		WHERE quiz_questions.quiz_id = ($1)
+		ORDER BY quiz_questions.order_number
 	)
-	SELECT COUNT(*) AS score, user_id FROM correct_answers
-	GROUP BY user_id
+	SELECT 
+		score, 
+		user_id
+	FROM player_scores
 	`
 
 	rows, err := d.DB.Query(ctx, sql, quizID)
@@ -53,9 +77,7 @@ func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Respo
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(results); err != nil {
+	if err := api.WriteJSON(w, results); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
@@ -64,3 +86,5 @@ func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Respo
 
 	return api.Response{}
 }
+
+// func (d Dependency) GetPlayerScore

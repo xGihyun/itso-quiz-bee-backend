@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
@@ -14,13 +13,13 @@ type NewAnswer struct {
 	IsCorrect bool   `json:"is_correct"`
 }
 
-func CreateAnswer(tx pgx.Tx, ctx context.Context, answer NewAnswer, questionID string) error {
+func (d Dependency) CreateAnswer(ctx context.Context, answer NewAnswer, questionID string) error {
 	sql := `
 	INSERT INTO quiz_answers (content, is_correct, quiz_question_id)
 	VALUES ($1, $2, $3)
     `
 
-	if _, err := tx.Exec(ctx, sql, answer.Content, answer.IsCorrect, questionID); err != nil {
+	if _, err := d.DB.Exec(ctx, sql, answer.Content, answer.IsCorrect, questionID); err != nil {
 		return err
 	}
 

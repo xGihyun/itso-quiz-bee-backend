@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,7 +46,6 @@ func (d Dependency) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (d Dependency) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
-	w.Header().Set("Content-Type", "application/json")
 	ctx := context.Background()
 
 	query := "SELECT user_id, email, role FROM users WHERE user_id = ($1)"
@@ -65,7 +63,7 @@ func (d Dependency) GetByID(w http.ResponseWriter, r *http.Request) api.Response
 		}
 	}
 
-	if err := json.NewEncoder(w).Encode(user); err != nil {
+	if err := api.WriteJSON(w, user); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,

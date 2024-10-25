@@ -9,7 +9,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-type LoginRequestData struct {
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
@@ -30,7 +30,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 
 	ctx := context.Background()
 
-	var data LoginRequestData
+	var data LoginRequest
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -57,6 +57,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
+	// TODO: Change value to something else
 	cookie := http.Cookie{
 		Name:     "session",
 		Value:    user.UserID,

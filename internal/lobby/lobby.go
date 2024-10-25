@@ -2,16 +2,15 @@ package lobby
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
+	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
 type Dependency struct {
-	DB *pgxpool.Pool
+	DB database.Querier
 }
 
 type Status string
@@ -21,11 +20,16 @@ const (
 	Closed Status = "closed"
 )
 
-type NewLobby struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Capacity    sql.NullInt16  `json:"capacity"`
-	Status      Status         `json:"status"`
+type NewLobbyRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Capacity    *int16  `json:"capacity"`
+	Status      Status  `json:"status"`
+}
+
+type NewLobbyResponse struct {
+	LobbyID string `json:"lobby_id"`
+	Code    string `json:"code"`
 }
 
 const OTP_LENGTH = 6
@@ -36,7 +40,7 @@ const OTP_LENGTH = 6
 func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data NewLobby
+	var data NewLobbyRequest
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -48,10 +52,10 @@ func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response 
 	}
 
 	sql := `
-    INSERT INTO lobbies (name, description, capacity, status)
-    VALUES ($1, $2, $3, $4)
-    RETURNING lobby_id
-    `
+		INSERT INTO lobbies (name, description, capacity, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING lobby_id
+		`
 
 	row := d.DB.QueryRow(ctx, sql, data.Name, data.Description, data.Capacity, data.Status)
 
@@ -73,11 +77,23 @@ func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response 
 	}
 
 	sql = `
-    INSERT INTO lobby_codes (code, lobby_id)
-    VALUES ($1, $2)
-    `
+		INSERT INTO lobby_codes (code, lobby_id)
+	    VALUES ($1, $2)
+		RETURNING code, lobby_id
+		`
 
-	if _, err := d.DB.Exec(ctx, sql, code, lobbyID); err != nil {
+	row = d.DB.QueryRow(ctx, sql, code, lobbyID)
+
+	var lobby NewLobbyResponse
+
+	if err := row.Scan(&lobby.Code, &lobby.LobbyID); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+		}
+	}
+
+	if err := api.WriteJSON(w, lobby); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
@@ -87,7 +103,7 @@ func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response 
 	return api.Response{StatusCode: http.StatusCreated}
 }
 
-type JoinRequestData struct {
+type JoinRequest struct {
 	Code   string `json:"code"`
 	UserID string `json:"user_id"`
 }
@@ -95,7 +111,7 @@ type JoinRequestData struct {
 func (d Dependency) Join(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data JoinRequestData
+	var data JoinRequest
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -107,8 +123,9 @@ func (d Dependency) Join(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 
 	sql := `
-    SELECT lobby_id FROM lobby_codes
-    WHERE code = ($1)
+    SELECT lobby_codes.lobby_id FROM lobby_codes
+	JOIN lobbies ON lobbies.lobby_id = lobby_codes.lobby_id
+    WHERE lobby_codes.code = ($1) AND lobbies.status = 'open'
     `
 
 	var lobbyID string
