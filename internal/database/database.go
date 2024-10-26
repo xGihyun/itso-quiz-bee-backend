@@ -5,7 +5,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Querier interface {
@@ -15,15 +14,17 @@ type Querier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-type Postgres struct {
-	DB *pgxpool.Pool
-}
+// type PostgresRepository struct {
+// 	Querier Querier
+// }
+//
+// func NewPostgresQuerier(q Querier) *PostgresRepository {
+// 	return &PostgresRepository{
+// 		Querier: q,
+// 	}
+// }
 
-func WithTx(pg Postgres) error {
-	return nil
-}
-
-// import (
+// import k
 // 	"net/http"
 //
 // 	"github.com/jackc/pgx/v5"

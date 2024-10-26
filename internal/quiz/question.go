@@ -20,14 +20,14 @@ type NewQuestion struct {
 	Answers     []NewAnswer     `json:"answers"`
 }
 
-func (qs *QuizService) CreateQuestion(ctx context.Context, question NewQuestion, quizID string) error {
+func (dr *DatabaseRepository) CreateQuestion(ctx context.Context, question NewQuestion, quizID string) error {
 	sql := `
 	INSERT INTO quiz_questions (content, variant, points, order_number, quiz_id)
 	VALUES ($1, $2, $3, $4, $5)
 	RETURNING quiz_question_id
 	`
 
-	row := qs.store.DB.QueryRow(ctx, sql, question.Content, question.Variant, question.Points, question.OrderNumber, quizID)
+	row := dr.Querier.QueryRow(ctx, sql, question.Content, question.Variant, question.Points, question.OrderNumber, quizID)
 
 	var questionID string
 
@@ -36,7 +36,7 @@ func (qs *QuizService) CreateQuestion(ctx context.Context, question NewQuestion,
 	}
 
 	for _, answer := range question.Answers {
-		if err := qs.store.CreateAnswer(ctx, answer, questionID); err != nil {
+		if err := dr.CreateAnswer(ctx, answer, questionID); err != nil {
 			return err
 		}
 	}

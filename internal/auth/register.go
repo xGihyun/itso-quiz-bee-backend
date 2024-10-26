@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
@@ -15,21 +16,12 @@ type Dependency struct {
 	DB database.Querier
 }
 
-type Repo interface {
-	RegisterFoo(v int) int
-}
-
-func (d Dependency) RegisterFoo() {
-	return
-}
-
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Response {
-	d.RegisterFoo()
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	// w.Header().Set("Content-Type", "application/json")
 	ctx := context.Background()
@@ -51,10 +43,17 @@ func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Respons
     `
 
 	if _, err := d.DB.Exec(ctx, sql, data.Email, data.Password, user.Player); err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			return api.Response{
+				Error:      err,
+				StatusCode: http.StatusConflict,
+				Message:    "User " + data.Email + " already exists.",
+			}
+		}
+
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusConflict,
-			Message:    "User " + data.Email + " already exists.",
+			StatusCode: http.StatusInternalServerError,
 		}
 	}
 

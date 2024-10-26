@@ -2,10 +2,8 @@ package quiz
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
 type Result struct {
@@ -19,15 +17,7 @@ type PlayerAnswer struct {
 	IsCorrect              bool   `json:"is_correct"`
 }
 
-func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	quizID := r.PathValue("quiz_id")
-
-	// TODO:
-	// - Also get score from written answers and add it with selected answers
-	// - Put SQL queries in their own .sql files maybe (?)
-
+func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]Result, error) {
 	sql := `
 	WITH player_scores AS (
 		SELECT 
@@ -61,30 +51,15 @@ func (d Dependency) GetResults(w http.ResponseWriter, r *http.Request) api.Respo
 	FROM player_scores
 	`
 
-	rows, err := d.DB.Query(ctx, sql, quizID)
+	rows, err := dr.Querier.Query(ctx, sql, quizID)
 	if err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+		return nil, err
 	}
 
 	results, err := pgx.CollectRows(rows, pgx.RowToStructByName[Result])
 	if err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+		return nil, err
 	}
 
-	if err := api.WriteJSON(w, results); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
-	}
-
-	return api.Response{}
+	return results, nil
 }
-
-// func (d Dependency) GetPlayerScore

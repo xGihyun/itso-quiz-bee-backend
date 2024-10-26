@@ -48,7 +48,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 
 	row := d.DB.QueryRow(ctx, sql, data.Email, data.Password)
 
-	var user user.User
+	var user user.UserResponse
 
 	if err := row.Scan(&user.UserID, &user.Email, &user.Role); err != nil {
 		return api.Response{
@@ -57,7 +57,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	// TODO: Change value to something else
+	// TODO: Change `Value` to something else
 	cookie := http.Cookie{
 		Name:     "session",
 		Value:    user.UserID,

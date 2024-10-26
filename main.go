@@ -20,10 +20,12 @@ import (
 )
 
 type Env struct {
-	user       user.Dependency
-	auth       auth.Dependency
-	lobby      lobby.Dependency
-	quiz       quiz.Dependency
+	auth  auth.Dependency
+
+	user  user.Service
+	lobby lobby.Service
+	quiz  quiz.Service
+
 	middleware middleware.Dependency
 }
 
@@ -49,10 +51,10 @@ func main() {
 	defer pool.Close()
 
 	env := &Env{
-		user:       user.Dependency{DB: pool},
+		user:       *user.NewService(user.NewDatabaseRepository(pool)),
 		auth:       auth.Dependency{DB: pool},
-		lobby:      lobby.Dependency{DB: pool},
-		quiz:       quiz.Dependency{DB: pool},
+		lobby:      *lobby.NewService(lobby.NewDatabaseRepository(pool)),
+		quiz:       *quiz.NewService(quiz.NewDatabaseRepository(pool)),
 		middleware: middleware.Dependency{Log: log.Logger},
 	}
 
@@ -63,15 +65,15 @@ func main() {
 	router.Handle("POST /login", api.HTTPHandler(env.auth.Login))
 	router.Handle("POST /register", api.HTTPHandler(env.auth.Register))
 
-	router.Handle("GET /users/{id}", api.HTTPHandler(env.user.GetByID))
+	router.Handle("GET /users/{user_id}", api.HTTPHandler(env.user.HandleGetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
 
-	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.Create))
-	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.Join))
+	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.HandleCreate))
+	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.HandleJoin))
 
-	router.Handle("POST /quizzes", api.HTTPHandler(env.quiz.Create))
-	router.Handle("POST /quizzes/answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
-	router.Handle("GET /quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
+	router.Handle("POST /quizzes", api.HTTPHandler(env.quiz.HandleCreate))
+	router.Handle("POST /quizzes/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
+	router.Handle("GET /quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.HandleGetResults))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

@@ -21,7 +21,17 @@ func (fn HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		res.StatusCode = 200
 	}
 
+	// if err := WriteJSON(w, res); err != nil {
+	// 	log.Error().Err(err).Msg("Failed to encode JSON error response.")
+	// 	http.Error(w, err.Error(), 500)
+	// 	return
+	// }
+
 	if res.Error != nil {
+		if res.Message == "" {
+			res.Message = res.Error.Error()
+		}
+
 		log.Error().Err(res.Error).Msg(res.Message)
 		http.Error(w, res.Message, res.StatusCode)
 		return
