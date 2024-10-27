@@ -32,10 +32,6 @@ func (s *Service) HandleGetResults(w http.ResponseWriter, r *http.Request) api.R
 
 	quizID := r.PathValue("quiz_id")
 
-	// TODO:
-	// - Also get score from written answers and add it with selected answers
-	// - Put SQL queries in their own .sql files maybe (?)
-
 	results, err := s.repo.GetResults(ctx, quizID)
 	if err != nil {
 		return api.Response{

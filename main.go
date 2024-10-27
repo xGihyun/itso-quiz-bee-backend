@@ -14,13 +14,14 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
+	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 type Env struct {
-	auth  auth.Dependency
+	auth auth.Dependency
 
 	user  user.Service
 	lobby lobby.Service
@@ -51,8 +52,8 @@ func main() {
 	defer pool.Close()
 
 	env := &Env{
-		user:       *user.NewService(user.NewDatabaseRepository(pool)),
 		auth:       auth.Dependency{DB: pool},
+		user:       *user.NewService(user.NewDatabaseRepository(pool)),
 		lobby:      *lobby.NewService(lobby.NewDatabaseRepository(pool)),
 		quiz:       *quiz.NewService(quiz.NewDatabaseRepository(pool)),
 		middleware: middleware.Dependency{Log: log.Logger},
@@ -60,6 +61,7 @@ func main() {
 
 	router := http.NewServeMux()
 
+	router.HandleFunc("GET /ws", ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
 	router.Handle("POST /login", api.HTTPHandler(env.auth.Login))
