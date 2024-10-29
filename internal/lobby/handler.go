@@ -32,14 +32,7 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		}
 	}
 
-	if err := api.WriteJSON(w, lobby); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
-	}
-
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Data: lobby}
 }
 
 func (s *Service) HandleJoin(w http.ResponseWriter, r *http.Request) api.Response {
@@ -53,6 +46,7 @@ func (s *Service) HandleJoin(w http.ResponseWriter, r *http.Request) api.Respons
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -62,12 +56,13 @@ func (s *Service) HandleJoin(w http.ResponseWriter, r *http.Request) api.Respons
 				Error:      err,
 				StatusCode: http.StatusNotFound,
 				Message:    "Lobby with code " + data.Code + " not found.",
+				Status:     api.Fail,
 			}
 		}
 
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusBadRequest,
+			StatusCode: http.StatusInternalServerError,
 		}
 	}
 

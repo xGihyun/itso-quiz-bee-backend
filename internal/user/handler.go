@@ -21,6 +21,7 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -31,7 +32,7 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
 }
 
 func (s *Service) HandleGetByID(w http.ResponseWriter, r *http.Request) api.Response {
@@ -54,12 +55,9 @@ func (s *Service) HandleGetByID(w http.ResponseWriter, r *http.Request) api.Resp
 		}
 	}
 
-	if err := api.WriteJSON(w, user); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+	return api.Response{
+		Data:       user,
+		StatusCode: http.StatusOK,
+		Status:     api.Success,
 	}
-
-	return api.Response{}
 }

@@ -19,10 +19,16 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
-	s.repo.Create(ctx, data)
+	if err := s.repo.Create(ctx, data); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+		}
+	}
 
 	return api.Response{StatusCode: http.StatusCreated}
 }
@@ -40,14 +46,7 @@ func (s *Service) HandleGetResults(w http.ResponseWriter, r *http.Request) api.R
 		}
 	}
 
-	if err := api.WriteJSON(w, results); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
-	}
-
-	return api.Response{}
+	return api.Response{Data: results}
 }
 
 func (qs *Service) HandleCreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {
