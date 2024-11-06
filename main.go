@@ -64,18 +64,18 @@ func main() {
 	router.HandleFunc("GET /ws", ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
-	router.Handle("POST /login", api.HTTPHandler(env.auth.Login))
-	router.Handle("POST /register", api.HTTPHandler(env.auth.Register))
+	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
+	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
-	router.Handle("GET /users/{user_id}", api.HTTPHandler(env.user.HandleGetByID))
+	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.HandleGetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
 
-	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.HandleCreate))
-	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.HandleJoin))
+	router.Handle("POST /api/lobbies", api.HTTPHandler(env.lobby.Create))
+	router.Handle("POST /api/lobbies/join", api.HTTPHandler(env.lobby.Join))
 
-	router.Handle("POST /quizzes", api.HTTPHandler(env.quiz.HandleCreate))
-	router.Handle("POST /quizzes/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
-	router.Handle("GET /quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.HandleGetResults))
+	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.HandleCreate))
+	router.Handle("POST /api/quizzes/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
+	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.HandleGetResults))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

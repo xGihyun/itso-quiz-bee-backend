@@ -12,7 +12,6 @@ import (
 )
 
 type Dependency struct {
-	// DB *pgxpool.Pool
 	DB database.Querier
 }
 
@@ -23,7 +22,6 @@ type RegisterRequest struct {
 
 func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Response {
 	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	// w.Header().Set("Content-Type", "application/json")
 	ctx := context.Background()
 
 	var data RegisterRequest
@@ -34,6 +32,7 @@ func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Respons
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -48,14 +47,16 @@ func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Respons
 				Error:      err,
 				StatusCode: http.StatusConflict,
 				Message:    "User " + data.Email + " already exists.",
+				Status:     api.Fail,
 			}
 		}
 
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Succesfully registered."}
 }

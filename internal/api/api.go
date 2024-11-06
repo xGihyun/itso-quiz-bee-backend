@@ -9,8 +9,12 @@ import (
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) Response
 
 func (fn HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 	res := fn(w, r)
 
+	log.Debug().Msg("I AM HERE")
 	if res.Error != nil {
 		if res.Message == "" {
 			res.Message = res.Error.Error()
@@ -22,8 +26,8 @@ func (fn HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		log.Error().Err(res.Error).Msg(res.Message)
 	} else {
-		res.Status = Success
-		res.StatusCode = 200
+		// res.Status = Success
+		// res.StatusCode = 200
 	}
 
 	if err := res.Encode(w); err != nil {

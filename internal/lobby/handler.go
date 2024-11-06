@@ -10,7 +10,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
-func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	var data NewLobbyRequest
@@ -21,6 +21,7 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -29,16 +30,39 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Fail,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Data: lobby}
+	return api.Response{StatusCode: http.StatusCreated, Data: lobby, Status: api.Success, Message: "Created lobby."}
 }
 
-func (s *Service) HandleJoin(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	var data JoinRequest
+
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			return api.Response{
+				Error:      err,
+				Message:    "Cookie not found",
+				StatusCode: http.StatusBadRequest,
+				Status:     api.Fail,
+			}
+		default:
+			return api.Response{
+				Error:      err,
+				Message:    "Server cookie error.",
+				StatusCode: http.StatusInternalServerError,
+				Status:     api.Error,
+			}
+		}
+	}
+
+	data.UserID = cookie.Value
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -63,8 +87,9 @@ func (s *Service) HandleJoin(w http.ResponseWriter, r *http.Request) api.Respons
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Joined lobby."}
 }

@@ -39,3 +39,22 @@ func (dr *DatabaseRepository) CreateSelectedAnswer(ctx context.Context, data New
 
 	return nil
 }
+
+type NewWrittenAnswer struct {
+	Content        string `json:"content"`
+	QuizQuestionID string `json:"quiz_question_id"`
+	UserID         string `json:"user_id"`
+}
+
+func (dr *DatabaseRepository) CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswer) error {
+	sql := `
+	INSERT INTO player_written_answers (content, quiz_question_id, user_id)
+	VALUES ($1, $2, $3)
+    `
+
+	if _, err := dr.Querier.Exec(ctx, sql, data.Content, data.QuizQuestionID, data.UserID); err != nil {
+		return err
+	}
+
+	return nil
+}

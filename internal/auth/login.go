@@ -15,16 +15,12 @@ type LoginRequest struct {
 }
 
 func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	// w.Header().Set("Content-Type", "application/json")
-
 	if _, err := r.Cookie("session"); err != http.ErrNoCookie {
 		return api.Response{
 			Error:      err,
 			Message:    "User session exists.",
 			StatusCode: http.StatusConflict,
+			Status:     api.Fail,
 		}
 	}
 
@@ -38,6 +34,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -54,6 +51,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusNotFound,
+			Status:     api.Fail,
 		}
 	}
 
@@ -67,5 +65,5 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 	http.SetCookie(w, &cookie)
 
-	return api.Response{}
+	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Successfully logged in."}
 }
