@@ -27,10 +27,11 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
 }
 
 func (s *Service) HandleGetResults(w http.ResponseWriter, r *http.Request) api.Response {
@@ -43,10 +44,11 @@ func (s *Service) HandleGetResults(w http.ResponseWriter, r *http.Request) api.R
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
 		}
 	}
 
-	return api.Response{Data: results}
+	return api.Response{Data: results, Status: api.Success, StatusCode: http.StatusOK}
 }
 
 func (qs *Service) HandleCreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {
@@ -60,6 +62,7 @@ func (qs *Service) HandleCreateSelectedAnswer(w http.ResponseWriter, r *http.Req
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -67,8 +70,9 @@ func (qs *Service) HandleCreateSelectedAnswer(w http.ResponseWriter, r *http.Req
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
 }

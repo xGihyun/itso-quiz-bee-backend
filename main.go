@@ -74,7 +74,7 @@ func main() {
 	router.Handle("POST /api/lobbies/join", api.HTTPHandler(env.lobby.Join))
 
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.HandleCreate))
-	router.Handle("POST /api/quizzes/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
+	router.Handle("POST /api/quizzes/{quiz_id}/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
 	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.HandleGetResults))
 
 	port, ok := os.LookupEnv("PORT")
