@@ -74,7 +74,8 @@ func (s *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	if err := s.repo.Join(ctx, data); err != nil {
+	lobby, err := s.repo.Join(ctx, data)
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
 				Error:      err,
@@ -91,5 +92,5 @@ func (s *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Joined lobby."}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Joined lobby.", Data: lobby}
 }

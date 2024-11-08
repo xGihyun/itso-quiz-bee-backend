@@ -15,7 +15,8 @@ type Repository interface {
 	CreateQuestion(ctx context.Context, question NewQuestion, quizID string) error
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	CreateSelectedAnswer(ctx context.Context, data NewSelectedAnswer) error
-	CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswer) error
+	CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswerRequest) error
+	Join(ctx context.Context, data JoinRequest) error
 }
 
 type DatabaseRepository struct {

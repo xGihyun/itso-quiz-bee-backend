@@ -67,15 +67,18 @@ func main() {
 	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
 	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
-	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.HandleGetByID))
+	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
 
 	router.Handle("POST /api/lobbies", api.HTTPHandler(env.lobby.Create))
 	router.Handle("POST /api/lobbies/join", api.HTTPHandler(env.lobby.Join))
+	// router.Handle("GET /api/lobbies/{lobby_id}/quizzes", api.HTTPHandler(env.lobby.Create))
 
-	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.HandleCreate))
-	router.Handle("POST /api/quizzes/{quiz_id}/answers", api.HTTPHandler(env.quiz.HandleCreateSelectedAnswer))
-	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.HandleGetResults))
+	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
+	router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.Join))
+	router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
+	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
+	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

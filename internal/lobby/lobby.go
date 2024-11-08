@@ -75,19 +75,23 @@ type JoinRequest struct {
 	UserID string `json:"user_id"`
 }
 
-func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error {
+type JoinResponse struct {
+	LobbyID string `json:"lobby_id"`
+}
+
+func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) (JoinResponse, error) {
 	sql := `
     SELECT lobby_codes.lobby_id FROM lobby_codes
 	JOIN lobbies ON lobbies.lobby_id = lobby_codes.lobby_id
     WHERE lobby_codes.code = ($1) AND lobbies.status = 'open'
     `
 
-	var lobbyID string
+	var lobby JoinResponse
 
 	row := dr.Querier.QueryRow(ctx, sql, data.Code)
 
-	if err := row.Scan(&lobbyID); err != nil {
-		return err
+	if err := row.Scan(&lobby.LobbyID); err != nil {
+		return JoinResponse{}, err
 	}
 
 	sql = `
@@ -95,9 +99,9 @@ func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error 
     VALUES ($1, $2)
     `
 
-	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, lobbyID); err != nil {
-		return err
+	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, lobby.LobbyID); err != nil {
+		return JoinResponse{}, err
 	}
 
-	return nil
+	return lobby, nil
 }

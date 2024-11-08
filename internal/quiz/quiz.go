@@ -8,7 +8,8 @@ type Status string
 
 const (
 	Open    Status = "open"
-	Ongoing Status = "ongoing"
+	Started Status = "started"
+	Paused  Status = "paused"
 	Closed  Status = "closed"
 )
 
@@ -51,6 +52,24 @@ func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuiz) error {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type JoinRequest struct {
+	UserID string `json:"user_id"`
+	QuizID string `json:"quiz_id"`
+}
+
+func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error {
+	sql := `
+	INSERT INTO users_in_quizzes (user_id, quiz_id)
+	VALUES ($1, $2)
+	`
+
+	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, data.QuizID); err != nil {
 		return err
 	}
 

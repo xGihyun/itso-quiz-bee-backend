@@ -10,7 +10,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
-func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	var data UserRequest
@@ -35,7 +35,7 @@ func (s *Service) HandleCreate(w http.ResponseWriter, r *http.Request) api.Respo
 	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
 }
 
-func (s *Service) HandleGetByID(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	id := r.PathValue("user_id")

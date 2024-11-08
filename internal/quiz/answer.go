@@ -40,13 +40,13 @@ func (dr *DatabaseRepository) CreateSelectedAnswer(ctx context.Context, data New
 	return nil
 }
 
-type NewWrittenAnswer struct {
+type NewWrittenAnswerRequest struct {
 	Content        string `json:"content"`
 	QuizQuestionID string `json:"quiz_question_id"`
 	UserID         string `json:"user_id"`
 }
 
-func (dr *DatabaseRepository) CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswer) error {
+func (dr *DatabaseRepository) CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswerRequest) error {
 	sql := `
 	INSERT INTO player_written_answers (content, quiz_question_id, user_id)
 	VALUES ($1, $2, $3)
