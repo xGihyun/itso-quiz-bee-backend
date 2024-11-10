@@ -11,7 +11,7 @@ import (
 func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data NewQuiz
+	var data NewQuizRequest
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -31,7 +31,24 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Quiz created."}
+}
+
+func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	quizID := r.PathValue("quiz_id")
+
+	result, err := s.repo.GetByID(ctx, quizID)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{Data: result, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched quiz."}
 }
 
 func (s *Service) GetResults(w http.ResponseWriter, r *http.Request) api.Response {

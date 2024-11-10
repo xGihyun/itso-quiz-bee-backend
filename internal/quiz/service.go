@@ -11,8 +11,9 @@ type Service struct {
 }
 
 type Repository interface {
-	Create(ctx context.Context, data NewQuiz) error
-	CreateQuestion(ctx context.Context, question NewQuestion, quizID string) error
+	GetByID(ctx context.Context, quizID string) (NewQuizResponse, error)
+	Create(ctx context.Context, data NewQuizRequest) error
+	CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	CreateSelectedAnswer(ctx context.Context, data NewSelectedAnswer) error
 	CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswerRequest) error
