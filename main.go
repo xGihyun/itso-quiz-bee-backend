@@ -26,6 +26,7 @@ type Env struct {
 	user  user.Service
 	lobby lobby.Service
 	quiz  quiz.Service
+	ws    ws.Service
 
 	middleware middleware.Dependency
 }
@@ -51,17 +52,21 @@ func main() {
 
 	defer pool.Close()
 
+	wsPool := ws.NewPool()
+	go wsPool.Start()
+
 	env := &Env{
 		auth:       auth.Dependency{DB: pool},
 		user:       *user.NewService(user.NewDatabaseRepository(pool)),
 		lobby:      *lobby.NewService(lobby.NewDatabaseRepository(pool)),
 		quiz:       *quiz.NewService(quiz.NewDatabaseRepository(pool)),
+		ws:         *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
 		middleware: middleware.Dependency{Log: log.Logger},
 	}
 
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /ws", ws.HandleConnection)
+	router.HandleFunc("GET /ws", env.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
 	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
@@ -75,6 +80,7 @@ func main() {
 	// router.Handle("GET /api/lobbies/{lobby_id}/quizzes", api.HTTPHandler(env.lobby.Create))
 
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
+	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetAll))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
 	router.Handle("POST /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.Create))
 	router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.Join))

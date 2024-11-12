@@ -51,6 +51,21 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	return api.Response{Data: result, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched quiz."}
 }
 
+func (s *Service) GetAll(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	results, err := s.repo.GetAll(ctx)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{Data: results, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched all quizzes."}
+}
+
 func (s *Service) GetResults(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 

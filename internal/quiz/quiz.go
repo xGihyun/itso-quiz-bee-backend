@@ -2,6 +2,8 @@ package quiz
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Status string
@@ -14,12 +16,8 @@ const (
 )
 
 type NewQuizRequest struct {
-	QuizID      string        `json:"quiz_id"`
-	Name        string        `json:"name"`
-	Description *string       `json:"description"`
-	Status      Status        `json:"status"`
-	LobbyID     *string       `json:"lobby_id"`
-	Questions   []NewQuestion `json:"questions"`
+	BasicInfo
+	Questions []NewQuestion `json:"questions"`
 }
 
 // TODO: Use transactions
@@ -79,12 +77,8 @@ func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error 
 }
 
 type NewQuizResponse struct {
-	QuizID      string        `json:"quiz_id"`
-	Name        string        `json:"name"`
-	Description *string       `json:"description"`
-	Status      Status        `json:"status"`
-	LobbyID     *string       `json:"lobby_id"`
-	Questions   []NewQuestion `json:"questions"`
+	BasicInfo
+	Questions []NewQuestion `json:"questions"`
 }
 
 func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (NewQuizResponse, error) {
@@ -129,4 +123,64 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (NewQu
 	}
 
 	return quiz, nil
+}
+
+type BasicInfo struct {
+	QuizID      string  `json:"quiz_id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Status      Status  `json:"status"`
+	LobbyID     *string `json:"lobby_id"`
+}
+
+func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
+	sql := `
+	SELECT quiz_id, name, description, lobby_id, status
+	FROM quizzes
+	`
+
+	rows, err := dr.Querier.Query(ctx, sql)
+	if err != nil {
+		return nil, err
+	}
+
+	quizzes, err := pgx.CollectRows(rows, pgx.RowToStructByName[BasicInfo])
+	if err != nil {
+		return nil, err
+	}
+
+	return quizzes, nil
+}
+
+func (dr *DatabaseRepository) UpdateByID(ctx context.Context, data BasicInfo) error {
+	sql := `
+	UPDATE quizzes
+	SET name = ($1), description = ($2), lobby_id = ($3), status = ($4)
+	WHERE quiz_id = ($5)
+	`
+
+	if _, err := dr.Querier.Exec(ctx, sql, data.Name, data.Description, data.LobbyID, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type UpdateStatusRequest struct {
+	QuizID string `json:"quiz_id"`
+	Status Status `json:"status"`
+}
+
+func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error {
+	sql := `
+	UPDATE quizzes
+	SET status = ($1)
+	WHERE quiz_id = ($2)
+	`
+
+	if _, err := dr.Querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -10,33 +10,39 @@ import (
 )
 
 var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:     func(r *http.Request) bool { return true },
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
-func HandleConnection(w http.ResponseWriter, r *http.Request) {
+func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		return nil, err
+	}
+
+	return conn, err
+}
+
+func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrade(w, r)
+	if err != nil {
+		log.Error().Err(err).Send()
 		return
 	}
 	defer conn.Close()
 
-	keepAlive(conn, time.Duration(25)*time.Second)
-
-	for {
-		messageType, bytes, err := conn.ReadMessage()
-		if err != nil {
-			log.Error().Err(err).Send()
-			return
-		}
-
-		message := string(bytes[:])
-		log.Info().Msg("Received: " + message)
-
-		if err := conn.WriteMessage(messageType, bytes); err != nil {
-			log.Error().Err(err).Send()
-			return
-		}
+	client := &Client{
+		Conn: conn,
+		Pool: s.pool,
+		repo: s.repo,
 	}
+
+	s.pool.Register <- client
+
+	client.Read()
+
+	keepAlive(conn, time.Duration(25)*time.Second)
 }
 
 func keepAlive(conn *websocket.Conn, timeout time.Duration) {
@@ -44,7 +50,7 @@ func keepAlive(conn *websocket.Conn, timeout time.Duration) {
 
 	conn.SetPongHandler(func(msg string) error {
 		lastResponse = time.Now()
-		log.Debug().Msg("Received pong from client!")
+		// log.Debug().Msg("Received pong from client!")
 		return nil
 	})
 

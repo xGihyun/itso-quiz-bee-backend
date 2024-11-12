@@ -12,6 +12,9 @@ type Service struct {
 
 type Repository interface {
 	GetByID(ctx context.Context, quizID string) (NewQuizResponse, error)
+	GetAll(ctx context.Context) ([]BasicInfo, error)
+	UpdateByID(ctx context.Context, data BasicInfo) error
+	UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error
 	Create(ctx context.Context, data NewQuizRequest) error
 	CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
