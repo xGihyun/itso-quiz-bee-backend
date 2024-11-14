@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
@@ -140,6 +141,28 @@ func (qs *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 
 	var data JoinRequest
 
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			return api.Response{
+				Error:      err,
+				Message:    "Cookie not found",
+				StatusCode: http.StatusBadRequest,
+				Status:     api.Fail,
+			}
+		default:
+			return api.Response{
+				Error:      err,
+				Message:    "Server cookie error.",
+				StatusCode: http.StatusInternalServerError,
+				Status:     api.Error,
+			}
+		}
+	}
+
+	data.UserID = cookie.Value
+
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&data); err != nil {
@@ -159,4 +182,21 @@ func (qs *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 
 	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Joined quiz."}
+}
+
+func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	quizID := r.PathValue("quiz_id")
+
+	question, err := s.repo.GetCurrentQuestion(ctx, quizID)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Fetched current question.", Data: question}
 }

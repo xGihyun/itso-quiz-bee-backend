@@ -69,6 +69,7 @@ func main() {
 	router.HandleFunc("GET /ws", env.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
+	router.Handle("GET /api/session", api.HTTPHandler(env.auth.GetCurrentUser))
 	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
 	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
@@ -87,6 +88,7 @@ func main() {
 	router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
 	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
 	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
+	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

@@ -36,6 +36,16 @@ type Client struct {
 	repo DatabaseRepository
 }
 
+type QuizStartRequest struct {
+	quiz.UpdateStatusRequest
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
+type QuizNextQuestionRequest struct {
+	QuizID         string `json:"quiz_id"`
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
 func (c *Client) Read() {
 	defer func() {
 		c.Pool.Unregister <- c
@@ -59,29 +69,52 @@ func (c *Client) Read() {
 		}
 
 		// TODO: Do stuff based on request
+		quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
 
 		switch request.Event {
 		case QuizStart:
-			var data quiz.UpdateStatusRequest
+			var data QuizStartRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
-
-			if err := quizRepo.UpdateStatusByID(ctx, data); err != nil {
+			if err := quizRepo.UpdateStatusByID(ctx, quiz.UpdateStatusRequest{QuizID: data.QuizID, Status: data.Status}); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
+
+			// TODO:
+			// Get all users in quiz
+			// Set the quiz_question to the quiz' first question
+			// Redirect everyone to the question
+
+			quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
+				QuizID:         data.QuizID,
+				QuizQuestionID: data.QuizQuestionID,
+			})
 
 			log.Info().Msg("Quiz has started.")
 			break
 
 		case QuizNextQuestion:
+		case QuizPreviousQuestion:
+			var data QuizNextQuestionRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
+				QuizID:         data.QuizID,
+				QuizQuestionID: data.QuizQuestionID,
+			})
+
 			log.Info().Msg("Next question.")
 			break
+
 		default:
 			log.Warn().Msg(fmt.Sprintf("Unknown request event: %v", request.Event))
 		}

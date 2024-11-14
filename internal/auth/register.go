@@ -21,7 +21,6 @@ type RegisterRequest struct {
 }
 
 func (d Dependency) Register(w http.ResponseWriter, r *http.Request) api.Response {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
 	ctx := context.Background()
 
 	var data RegisterRequest

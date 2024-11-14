@@ -76,12 +76,18 @@ func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error 
 	return nil
 }
 
-type NewQuizResponse struct {
+type QuizResponse struct {
 	BasicInfo
-	Questions []NewQuestion `json:"questions"`
+	Questions []Question `json:"questions"`
 }
 
-func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (NewQuizResponse, error) {
+type Answer struct {
+	QuizAnswerID string `json:"quiz_answer_id"`
+	Content      string `json:"content"`
+	IsCorrect    bool   `json:"is_correct"`
+}
+
+func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizResponse, error) {
 	sql := `
 	SELECT 
 		quizzes.quiz_id, 
@@ -92,12 +98,15 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (NewQu
 		(
 			SELECT jsonb_agg(
 				jsonb_build_object(
+					'quiz_question_id', quiz_questions.quiz_question_id,
 					'content', quiz_questions.content,
 					'variant', quiz_questions.variant,
 					'points', quiz_questions.points,
+					'order_number', quiz_questions.order_number,
 					'answers', (
 						SELECT jsonb_agg(
 							jsonb_build_object(
+								'quiz_answer_id', quiz_answers.quiz_answer_id,
 								'content', quiz_answers.content,
 								'is_correct', quiz_answers.is_correct
 							)
@@ -116,10 +125,10 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (NewQu
 
 	row := dr.Querier.QueryRow(ctx, sql, quizID)
 
-	var quiz NewQuizResponse
+	var quiz QuizResponse
 
 	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Questions); err != nil {
-		return NewQuizResponse{}, err
+		return QuizResponse{}, err
 	}
 
 	return quiz, nil
@@ -179,6 +188,29 @@ func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateS
 	`
 
 	if _, err := dr.Querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type UpdateCurrentQuestionRequest struct {
+	QuizID         string `json:"quiz_id"`
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
+type UpdateCurrentQuestionResponse struct {
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
+func (dr *DatabaseRepository) UpdateCurrentQuestion(ctx context.Context, data UpdateCurrentQuestionRequest) error {
+	sql := `
+	UPDATE users_in_quizzes
+	SET quiz_question_id = ($1)
+	WHERE quiz_id = ($2)
+	`
+
+	if _, err := dr.Querier.Exec(ctx, sql, data.QuizQuestionID, data.QuizID); err != nil {
 		return err
 	}
 

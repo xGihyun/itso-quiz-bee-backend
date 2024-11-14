@@ -11,7 +11,7 @@ type Service struct {
 }
 
 type Repository interface {
-	GetByID(ctx context.Context, quizID string) (NewQuizResponse, error)
+	GetByID(ctx context.Context, quizID string) (QuizResponse, error)
 	GetAll(ctx context.Context) ([]BasicInfo, error)
 	UpdateByID(ctx context.Context, data BasicInfo) error
 	UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error
@@ -21,6 +21,7 @@ type Repository interface {
 	CreateSelectedAnswer(ctx context.Context, data NewSelectedAnswer) error
 	CreateWrittenAnswer(ctx context.Context, data NewWrittenAnswerRequest) error
 	Join(ctx context.Context, data JoinRequest) error
+	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 }
 
 type DatabaseRepository struct {
