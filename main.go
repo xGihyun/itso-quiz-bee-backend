@@ -90,6 +90,7 @@ func main() {
 	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
 	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
 	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
+	router.Handle("GET /api/quizzes/{quiz_id}/users", api.HTTPHandler(env.quiz.GetAllUsers))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {

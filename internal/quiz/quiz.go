@@ -59,24 +59,6 @@ func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuizRequest) e
 	return nil
 }
 
-type JoinRequest struct {
-	UserID string `json:"user_id"`
-	QuizID string `json:"quiz_id"`
-}
-
-func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error {
-	sql := `
-	INSERT INTO users_in_quizzes (user_id, quiz_id)
-	VALUES ($1, $2)
-	`
-
-	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, data.QuizID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 type QuizResponse struct {
 	BasicInfo
 	Questions []Question `json:"questions"`
@@ -182,6 +164,7 @@ type UpdateStatusRequest struct {
 }
 
 func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error {
+	// NOTE: Testing `squirrel` query builder
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	sql, _, err := psql.Update("quizzes").Set("status", data.Status).Where("quiz_id = (?)", data.QuizID).ToSql()
@@ -190,29 +173,6 @@ func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateS
 	}
 
 	if _, err := dr.Querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type UpdateCurrentQuestionRequest struct {
-	QuizID         string `json:"quiz_id"`
-	QuizQuestionID string `json:"quiz_question_id"`
-}
-
-type UpdateCurrentQuestionResponse struct {
-	QuizQuestionID string `json:"quiz_question_id"`
-}
-
-func (dr *DatabaseRepository) UpdateCurrentQuestion(ctx context.Context, data UpdateCurrentQuestionRequest) error {
-	sql := `
-	UPDATE users_in_quizzes
-	SET quiz_question_id = ($1)
-	WHERE quiz_id = ($2)
-	`
-
-	if _, err := dr.Querier.Exec(ctx, sql, data.QuizQuestionID, data.QuizID); err != nil {
 		return err
 	}
 

@@ -62,8 +62,6 @@ func (s *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	data.UserID = cookie.Value
-
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&data); err != nil {
@@ -73,6 +71,8 @@ func (s *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 			Status:     api.Fail,
 		}
 	}
+
+	data.UserID = cookie.Value
 
 	lobby, err := s.repo.Join(ctx, data)
 	if err != nil {

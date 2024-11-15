@@ -21,6 +21,7 @@ const (
 	QuizSubmitAnswer   Event = "quiz-submit-answer"
 	UserJoin           Event = "user-join"
 	UserLeave          Event = "user-leave"
+	Heartbeat          Event = "heartbeat"
 )
 
 type Request struct {
@@ -67,6 +68,9 @@ func (c *Client) Read() {
 
 	ctx := context.Background()
 
+	// TODO: Do stuff based on request
+	quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
+
 	for {
 		_, data, err := c.Conn.ReadMessage()
 		if err != nil {
@@ -80,9 +84,6 @@ func (c *Client) Read() {
 			log.Error().Err(err).Send()
 			return
 		}
-
-		// TODO: Do stuff based on request
-		quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
 
 		switch request.Event {
 		case QuizStart:
@@ -137,16 +138,15 @@ func (c *Client) Read() {
 			}
 
 			switch data.Variant {
-			case quiz.MultipleChoice:
-			case quiz.Boolean:
+			case quiz.MultipleChoice, quiz.Boolean:
 				var answer quiz.NewSelectedAnswer
-
-				answer.UserID = c.ID
 
 				if err := json.Unmarshal(data.Answer, &answer); err != nil {
 					log.Error().Err(err).Send()
 					return
 				}
+
+				answer.UserID = c.ID
 
 				if err := quizRepo.CreateSelectedAnswer(ctx, answer); err != nil {
 					log.Error().Err(err).Send()
@@ -158,12 +158,12 @@ func (c *Client) Read() {
 			case quiz.Written:
 				var answer quiz.NewWrittenAnswerRequest
 
-				answer.UserID = c.ID
-
 				if err := json.Unmarshal(data.Answer, &answer); err != nil {
 					log.Error().Err(err).Send()
 					return
 				}
+
+				answer.UserID = c.ID
 
 				if err := quizRepo.CreateWrittenAnswer(ctx, answer); err != nil {
 					log.Error().Err(err).Send()
@@ -177,6 +177,10 @@ func (c *Client) Read() {
 				log.Warn().Msg("Invalid question variant.")
 			}
 
+			break
+
+		case Heartbeat:
+			log.Info().Msg("Heartbeat!")
 			break
 
 		default:

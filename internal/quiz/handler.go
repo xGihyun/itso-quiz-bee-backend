@@ -109,8 +109,6 @@ func (qs *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
-	data.UserID = cookie.Value
-
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&data); err != nil {
@@ -120,6 +118,8 @@ func (qs *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) 
 			Status:     api.Fail,
 		}
 	}
+
+	data.UserID = cookie.Value
 
 	if err := qs.repo.CreateSelectedAnswer(ctx, data); err != nil {
 		return api.Response{
@@ -157,8 +157,6 @@ func (qs *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) a
 		}
 	}
 
-	data.UserID = cookie.Value
-
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&data); err != nil {
@@ -168,6 +166,8 @@ func (qs *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) a
 			Status:     api.Fail,
 		}
 	}
+
+	data.UserID = cookie.Value
 
 	if err := qs.repo.CreateWrittenAnswer(ctx, data); err != nil {
 		return api.Response{
@@ -205,8 +205,6 @@ func (qs *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	data.UserID = cookie.Value
-
 	decoder := json.NewDecoder(r.Body)
 
 	if err := decoder.Decode(&data); err != nil {
@@ -216,6 +214,8 @@ func (qs *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
 			Status:     api.Fail,
 		}
 	}
+
+	data.UserID = cookie.Value
 
 	if err := qs.repo.Join(ctx, data); err != nil {
 		return api.Response{
@@ -303,4 +303,21 @@ func (s *Service) UpdateStatusByID(w http.ResponseWriter, r *http.Request) api.R
 		StatusCode: http.StatusOK,
 		Message:    "Updated quiz status.",
 	}
+}
+
+func (s *Service) GetAllUsers(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	quizID := r.PathValue("quiz_id")
+
+	users, err := s.repo.GetAllUsers(ctx, quizID)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{Data: users, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched all users in quiz."}
 }
