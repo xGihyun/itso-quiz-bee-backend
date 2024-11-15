@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -181,11 +182,12 @@ type UpdateStatusRequest struct {
 }
 
 func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error {
-	sql := `
-	UPDATE quizzes
-	SET status = ($1)
-	WHERE quiz_id = ($2)
-	`
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	sql, _, err := psql.Update("quizzes").Set("status", data.Status).Where("quiz_id = (?)", data.QuizID).ToSql()
+	if err != nil {
+		return err
+	}
 
 	if _, err := dr.Querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
 		return err

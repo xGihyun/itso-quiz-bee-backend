@@ -13,14 +13,14 @@ import (
 type Event string
 
 const (
-	QuizStart            Event = "quiz-start"
-	QuizPause            Event = "quiz-pause"
-	QuizResume           Event = "quiz-resume"
-	QuizEnd              Event = "quiz-end"
-	QuizNextQuestion     Event = "quiz-next-question"
-	QuizPreviousQuestion Event = "quiz-previous-question"
-	UserJoin             Event = "user-join"
-	UserLeave            Event = "user-leave"
+	QuizStart          Event = "quiz-start"
+	QuizPause          Event = "quiz-pause"
+	QuizResume         Event = "quiz-resume"
+	QuizEnd            Event = "quiz-end"
+	QuizChangeQuestion Event = "quiz-change-question"
+	QuizSubmitAnswer   Event = "quiz-submit-answer"
+	UserJoin           Event = "user-join"
+	UserLeave          Event = "user-leave"
 )
 
 type Request struct {
@@ -44,6 +44,19 @@ type QuizStartRequest struct {
 type QuizNextQuestionRequest struct {
 	QuizID         string `json:"quiz_id"`
 	QuizQuestionID string `json:"quiz_question_id"`
+}
+
+type QuizChangeQuestionRequest struct {
+	QuizID         string `json:"quiz_id"`
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
+type QuizSubmitAnswerRequest struct {
+	UserID         string               `json:"user_id"`
+	QuizID         string               `json:"quiz_id"`
+	QuizQuestionID string               `json:"quiz_question_id"`
+	Variant        quiz.QuestionVariant `json:"variant"`
+	Answer         json.RawMessage      `json:"answer"`
 }
 
 func (c *Client) Read() {
@@ -85,41 +98,92 @@ func (c *Client) Read() {
 				return
 			}
 
-			// TODO:
-			// Get all users in quiz
-			// Set the quiz_question to the quiz' first question
-			// Redirect everyone to the question
-
-			quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
+			if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
 				QuizID:         data.QuizID,
 				QuizQuestionID: data.QuizQuestionID,
-			})
+			}); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
 
 			log.Info().Msg("Quiz has started.")
 			break
 
-		case QuizNextQuestion:
-		case QuizPreviousQuestion:
-			var data QuizNextQuestionRequest
+		case QuizChangeQuestion:
+			var data QuizChangeQuestionRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
+			if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
 				QuizID:         data.QuizID,
 				QuizQuestionID: data.QuizQuestionID,
-			})
+			}); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
 
-			log.Info().Msg("Next question.")
+			log.Info().Msg("Change question.")
+			break
+
+		case QuizSubmitAnswer:
+			var data QuizSubmitAnswerRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			switch data.Variant {
+			case quiz.MultipleChoice:
+			case quiz.Boolean:
+				var answer quiz.NewSelectedAnswer
+
+				answer.UserID = c.ID
+
+				if err := json.Unmarshal(data.Answer, &answer); err != nil {
+					log.Error().Err(err).Send()
+					return
+				}
+
+				if err := quizRepo.CreateSelectedAnswer(ctx, answer); err != nil {
+					log.Error().Err(err).Send()
+					return
+				}
+
+				log.Info().Msg("Submitted multiple choice answer.")
+				break
+			case quiz.Written:
+				var answer quiz.NewWrittenAnswerRequest
+
+				answer.UserID = c.ID
+
+				if err := json.Unmarshal(data.Answer, &answer); err != nil {
+					log.Error().Err(err).Send()
+					return
+				}
+
+				if err := quizRepo.CreateWrittenAnswer(ctx, answer); err != nil {
+					log.Error().Err(err).Send()
+					return
+				}
+
+				log.Info().Msg("Submitted written answer.")
+				break
+
+			default:
+				log.Warn().Msg("Invalid question variant.")
+			}
+
 			break
 
 		default:
-			log.Warn().Msg(fmt.Sprintf("Unknown request event: %v", request.Event))
+			log.Warn().Msg(fmt.Sprintf("Unknown request event: %s", request.Event))
 		}
 
-		log.Info().Msg(fmt.Sprintf("Received: %v\n", request))
+		log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
 
 		c.Pool.Broadcast <- request
 

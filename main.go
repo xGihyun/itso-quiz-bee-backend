@@ -84,6 +84,7 @@ func main() {
 	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetAll))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
 	router.Handle("POST /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.Create))
+	router.Handle("PATCH /api/quizzes/{quiz_id}/status", api.HTTPHandler(env.quiz.UpdateStatusByID))
 	router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.Join))
 	router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
 	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))

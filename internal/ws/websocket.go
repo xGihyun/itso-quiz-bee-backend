@@ -25,6 +25,12 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 }
 
 func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		log.Error().Err(err).Send()
+		return
+	}
+
 	conn, err := upgrade(w, r)
 	if err != nil {
 		log.Error().Err(err).Send()
@@ -36,6 +42,7 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		Conn: conn,
 		Pool: s.pool,
 		repo: s.repo,
+		ID:   cookie.Value,
 	}
 
 	s.pool.Register <- client
