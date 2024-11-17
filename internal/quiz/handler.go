@@ -78,10 +78,11 @@ func (s *Service) GetResults(w http.ResponseWriter, r *http.Request) api.Respons
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
 			Status:     api.Error,
+			Data:       results,
 		}
 	}
 
-	return api.Response{Data: results, Status: api.Success, StatusCode: http.StatusOK}
+	return api.Response{Data: results, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched quiz results."}
 }
 
 func (qs *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {

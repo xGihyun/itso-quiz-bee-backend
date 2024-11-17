@@ -19,14 +19,18 @@ const (
 	QuizEnd            Event = "quiz-end"
 	QuizChangeQuestion Event = "quiz-change-question"
 	QuizSubmitAnswer   Event = "quiz-submit-answer"
-	UserJoin           Event = "user-join"
-	UserLeave          Event = "user-leave"
-	Heartbeat          Event = "heartbeat"
+	QuizSelectAnswer   Event = "quiz-select-answer"
+	QuizTypeAnswer     Event = "quiz-type-answer"
+
+	UserJoin  Event = "user-join"
+	UserLeave Event = "user-leave"
+	Heartbeat Event = "heartbeat"
 )
 
 type Request struct {
-	Event Event           `json:"event"`
-	Data  json.RawMessage `json:"data"`
+	Event  Event           `json:"event"`
+	Data   json.RawMessage `json:"data"`
+	UserID string          `json:"user_id"`
 }
 
 type Client struct {
@@ -42,14 +46,9 @@ type QuizStartRequest struct {
 	QuizQuestionID string `json:"quiz_question_id"`
 }
 
-type QuizNextQuestionRequest struct {
-	QuizID         string `json:"quiz_id"`
-	QuizQuestionID string `json:"quiz_question_id"`
-}
-
 type QuizChangeQuestionRequest struct {
-	QuizID         string `json:"quiz_id"`
-	QuizQuestionID string `json:"quiz_question_id"`
+	QuizID string `json:"quiz_id"`
+	quiz.Question
 }
 
 type QuizSubmitAnswerRequest struct {
@@ -59,6 +58,11 @@ type QuizSubmitAnswerRequest struct {
 	Variant        quiz.QuestionVariant `json:"variant"`
 	Answer         json.RawMessage      `json:"answer"`
 }
+
+type (
+	QuizSelectAnswerRequest quiz.NewSelectedAnswer
+	QuizTypeAnswerRequest   quiz.NewWrittenAnswerRequest
+)
 
 func (c *Client) Read() {
 	defer func() {
@@ -84,6 +88,8 @@ func (c *Client) Read() {
 			log.Error().Err(err).Send()
 			return
 		}
+
+		request.UserID = c.ID
 
 		switch request.Event {
 		case QuizStart:
@@ -177,6 +183,14 @@ func (c *Client) Read() {
 				log.Warn().Msg("Invalid question variant.")
 			}
 
+			break
+
+		case QuizSelectAnswer:
+			log.Info().Msg("Answer selected.")
+			break
+
+		case QuizTypeAnswer:
+			log.Info().Msg("Answer typed.")
 			break
 
 		case Heartbeat:
