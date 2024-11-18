@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type Role string
@@ -21,9 +23,16 @@ type UserResponse struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	Role   Role   `json:"role"`
+	Detail
 }
 
-// TODO: 
+type Detail struct {
+	FirstName  string  `json:"first_name"`
+	MiddleName *string `json:"middle_name"`
+	LastName   string  `json:"last_name"`
+}
+
+// TODO:
 // - Password hashing?
 // - Not sure if this should be on auth
 func (dr *DatabaseRepository) Create(ctx context.Context, data UserRequest) error {
@@ -51,4 +60,30 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, userID string) (UserR
 	}
 
 	return user, nil
+}
+
+func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]UserResponse, error) {
+	query := `
+	SELECT 
+		users.user_id, 
+		users.email, 
+		users.role,
+		user_details.first_name,
+		user_details.middle_name,
+		user_details.last_name
+	FROM users
+	JOIN user_details ON user_details.user_id = users.user_id
+	`
+
+	rows, err := dr.Querier.Query(ctx, query)
+	if err != nil {
+		return []UserResponse{}, err
+	}
+
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[UserResponse])
+	if err != nil {
+		return []UserResponse{}, err
+	}
+
+	return users, nil
 }

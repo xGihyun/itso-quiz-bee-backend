@@ -199,17 +199,23 @@ func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]
 	),
 	player_written_scores AS (
 		SELECT 
-			SUM(quiz_questions.points) AS score,
+			SUM(
+				CASE
+					WHEN LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content))
+					THEN quiz_questions.points
+					ELSE 0
+				END 
+			) AS score,
 			player_written_answers.user_id
 		FROM player_written_answers
-		JOIN quiz_answers 
-			ON quiz_answers.quiz_question_id = player_written_answers.quiz_question_id
 		JOIN quiz_questions 
-			ON quiz_questions.quiz_question_id = quiz_answers.quiz_question_id
+			ON quiz_questions.quiz_question_id = player_written_answers.quiz_question_id
+		LEFT JOIN quiz_answers 
+			ON quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
 		WHERE 
-			quiz_answers.content = player_written_answers.content
-			AND quiz_answers.is_correct IS TRUE
-			AND quiz_questions.quiz_id = ($1)
+			-- quiz_answers.content = player_written_answers.content
+			-- AND quiz_answers.is_correct IS TRUE
+			quiz_questions.quiz_id = ($1)
 		GROUP BY 
 			player_written_answers.user_id
 	)
@@ -264,7 +270,8 @@ func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]
 			quiz_questions.points,
 			player_written_answers.content,
 			CASE 
-				WHEN quiz_answers.content = player_written_answers.content THEN TRUE
+				WHEN LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content))
+				THEN TRUE
 				ELSE FALSE
 			END AS is_correct
 		FROM player_written_answers
@@ -272,7 +279,7 @@ func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]
 			ON quiz_questions.quiz_question_id = player_written_answers.quiz_question_id
 		LEFT JOIN quiz_answers 
 			ON quiz_answers.quiz_question_id = player_written_answers.quiz_question_id
-			   AND quiz_answers.content = player_written_answers.content
+			   AND LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content))
 		WHERE 
 			quiz_questions.quiz_id = ($1)
 			AND player_written_answers.user_id = ($2)

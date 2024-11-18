@@ -22,21 +22,28 @@ type Question struct {
 }
 
 type NewQuestion struct {
-	Content string          `json:"content"`
-	Variant QuestionVariant `json:"variant"`
-	Points  int16           `json:"points"`
+	QuizQuestionID string          `json:"quiz_question_id"`
+	Content        string          `json:"content"`
+	Variant        QuestionVariant `json:"variant"`
+	Points         int16           `json:"points"`
 	// OrderNumber int16           `json:"order_number"`
 	Answers []NewAnswer `json:"answers"`
 }
 
 func (dr *DatabaseRepository) CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error {
 	sql := `
-	INSERT INTO quiz_questions (content, variant, points, order_number, quiz_id)
-	VALUES ($1, $2, $3, $4, $5)
+	INSERT INTO quiz_questions (quiz_question_id, content, variant, points, order_number, quiz_id)
+	VALUES ($1, $2, $3, $4, $5, $6)
+	ON CONFLICT(quiz_question_id)
+	DO UPDATE SET
+		content = ($2),
+		variant = ($3),
+		points = ($4),
+		order_number = ($5)
 	RETURNING quiz_question_id
 	`
 
-	row := dr.Querier.QueryRow(ctx, sql, question.Content, question.Variant, question.Points, orderNumber, quizID)
+	row := dr.Querier.QueryRow(ctx, sql, question.QuizQuestionID, question.Content, question.Variant, question.Points, orderNumber, quizID)
 
 	var questionID string
 

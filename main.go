@@ -74,6 +74,7 @@ func main() {
 	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
 	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
+	router.Handle("GET /api/users", api.HTTPHandler(env.user.GetAll))
 	// router.HandleFunc("POST /users", env.user.Create)
 
 	router.Handle("POST /api/lobbies", api.HTTPHandler(env.lobby.Create))

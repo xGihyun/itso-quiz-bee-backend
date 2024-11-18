@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 type JoinRequest struct {
@@ -48,10 +49,8 @@ func (dr *DatabaseRepository) UpdateCurrentQuestion(ctx context.Context, data Up
 }
 
 type User struct {
-	UserID     string  `json:"user_id"`
-	FirstName  string  `json:"first_name"`
-	MiddleName *string `json:"middle_name"`
-	LastName   string  `json:"last_name"`
+	UserID string `json:"user_id"`
+	user.Detail
 }
 
 func (dr *DatabaseRepository) GetAllUsers(ctx context.Context, quizID string) ([]User, error) {
@@ -68,12 +67,12 @@ func (dr *DatabaseRepository) GetAllUsers(ctx context.Context, quizID string) ([
 
 	rows, err := dr.Querier.Query(ctx, sql, quizID)
 	if err != nil {
-		return nil, err
+		return []User{}, err
 	}
 
 	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[User])
 	if err != nil {
-		return nil, err
+		return []User{}, err
 	}
 
 	return users, nil

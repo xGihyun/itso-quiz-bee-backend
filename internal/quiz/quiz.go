@@ -26,6 +26,12 @@ func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuizRequest) e
 	sql := `
     INSERT INTO quizzes (quiz_id, name, description, status, lobby_id)
     VALUES ($1, $2, $3, $4, $5)
+	ON CONFLICT(quiz_id)
+	DO UPDATE SET
+		name = ($2),
+		description = ($3),
+		status = ($4),
+		lobby_id = ($5)
     RETURNING quiz_id
     `
 
@@ -37,9 +43,9 @@ func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuizRequest) e
 		return err
 	}
 
-	if *data.LobbyID == "" {
-		data.LobbyID = nil
-	}
+	// if data.LobbyID != nil && *data.LobbyID == "" {
+	// 	data.LobbyID = nil
+	// }
 
 	_, err = dr.Querier.Exec(ctx, sql, data.QuizID, data.Name, data.Description, data.Status, data.LobbyID)
 	if err != nil {

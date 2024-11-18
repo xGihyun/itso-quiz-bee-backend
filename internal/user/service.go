@@ -13,6 +13,7 @@ type Service struct {
 type Repository interface {
 	Create(ctx context.Context, data UserRequest) error
 	GetByID(ctx context.Context, userID string) (UserResponse, error)
+	GetAll(ctx context.Context) ([]UserResponse, error)
 }
 
 type DatabaseRepository struct {

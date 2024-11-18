@@ -61,3 +61,22 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 		Status:     api.Success,
 	}
 }
+
+func (s *Service) GetAll(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	users, err := s.repo.GetAll(ctx)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+		}
+	}
+
+	return api.Response{
+		Data:       users,
+		StatusCode: http.StatusOK,
+		Status:     api.Success,
+		Message:    "Fetched all users.",
+	}
+}
