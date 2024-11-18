@@ -23,6 +23,7 @@ type Repository interface {
 	Join(ctx context.Context, data JoinRequest) error
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 	GetAllUsers(ctx context.Context, quizID string) ([]User, error)
+	GetWrittenAnswer(ctx context.Context, quizID string, userID string) (GetWrittenAnswerResponse, error)
 }
 
 type DatabaseRepository struct {

@@ -92,6 +92,8 @@ func main() {
 	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
 	router.Handle("GET /api/quizzes/{quiz_id}/users", api.HTTPHandler(env.quiz.GetAllUsers))
 
+	router.Handle("GET /api/quizzes/{quiz_id}/users/answers", api.HTTPHandler(env.quiz.GetWrittenAnswer))
+
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		log.Fatal().Msg("PORT not found.")

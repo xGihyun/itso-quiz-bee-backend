@@ -78,3 +78,36 @@ func (dr *DatabaseRepository) GetAllUsers(ctx context.Context, quizID string) ([
 
 	return users, nil
 }
+
+// type GetAnswerRequest struct {
+// 	UserID         string `json:"user_id"`
+// 	QuizQuestionID string `json:"quiz_question_id"`
+// }
+
+type GetWrittenAnswerResponse struct {
+	PlayerWrittenAnswerID string `json:"player_written_answer_id"`
+	Content               string `json:"content"`
+}
+
+func (dr *DatabaseRepository) GetWrittenAnswer(ctx context.Context, quizID string, userID string) (GetWrittenAnswerResponse, error) {
+	question, err := dr.GetCurrentQuestion(ctx, quizID)
+	if err != nil {
+		return GetWrittenAnswerResponse{}, err
+	}
+
+	sql := `
+	SELECT player_written_answer_id, content
+	FROM player_written_answers
+	WHERE user_id = ($1) AND quiz_question_id = ($2)
+	`
+
+	row := dr.Querier.QueryRow(ctx, sql, userID, question.QuizQuestionID)
+
+	var answer GetWrittenAnswerResponse
+
+	if err := row.Scan(&answer.PlayerWrittenAnswerID, &answer.Content); err != nil {
+		return GetWrittenAnswerResponse{}, err
+	}
+
+	return answer, nil
+}

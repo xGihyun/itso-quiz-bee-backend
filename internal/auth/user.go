@@ -18,7 +18,7 @@ func (d Dependency) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.R
 		case errors.Is(err, http.ErrNoCookie):
 			return api.Response{
 				Error:      err,
-				Message:    "Cookie not found",
+				Message:    "User not authenticated.",
 				StatusCode: http.StatusBadRequest,
 				Status:     api.Fail,
 			}

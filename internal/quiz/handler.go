@@ -322,3 +322,46 @@ func (s *Service) GetAllUsers(w http.ResponseWriter, r *http.Request) api.Respon
 
 	return api.Response{Data: users, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched all users in quiz."}
 }
+
+func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			return api.Response{
+				Error:      err,
+				Message:    "Cookie not found",
+				StatusCode: http.StatusBadRequest,
+				Status:     api.Fail,
+			}
+		default:
+			return api.Response{
+				Error:      err,
+				Message:    "Server cookie error.",
+				StatusCode: http.StatusInternalServerError,
+				Status:     api.Error,
+			}
+		}
+	}
+
+	quizID := r.PathValue("quiz_id")
+
+	answer, err := s.repo.GetWrittenAnswer(ctx, quizID, cookie.Value)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusNotFound,
+			Status:     api.Fail,
+			Message:    "Written answer not found.",
+		}
+	}
+
+	return api.Response{
+		Status:     api.Success,
+		StatusCode: http.StatusOK,
+		Message:    "Fetched written answer.",
+		Data:       answer,
+	}
+}
