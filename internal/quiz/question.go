@@ -99,5 +99,7 @@ func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID str
 		return Question{}, err
 	}
 
+	question.Answers = []Answer{}
+
 	return question, nil
 }

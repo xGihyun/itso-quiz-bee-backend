@@ -13,6 +13,7 @@ import (
 type Event string
 
 const (
+	QuizUpdateStatus   Event = "quiz-update-status"
 	QuizStart          Event = "quiz-start"
 	QuizPause          Event = "quiz-pause"
 	QuizResume         Event = "quiz-resume"
@@ -39,6 +40,11 @@ type Client struct {
 	ID   string
 
 	repo DatabaseRepository
+}
+
+type QuizUpdateStatusRequest struct {
+	quiz.UpdateStatusRequest
+	QuizQuestionID *string `json:"quiz_question_id,omitempty"`
 }
 
 type QuizStartRequest struct {
@@ -114,6 +120,31 @@ func (c *Client) Read() {
 			}
 
 			log.Info().Msg("Quiz has started.")
+			break
+		case QuizUpdateStatus:
+			var data QuizUpdateStatusRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			if err := quizRepo.UpdateStatusByID(ctx, quiz.UpdateStatusRequest{QuizID: data.QuizID, Status: data.Status}); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			if data.Status == quiz.Started && data.QuizQuestionID != nil {
+				if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
+					QuizID:         data.QuizID,
+					QuizQuestionID: *data.QuizQuestionID,
+				}); err != nil {
+					log.Error().Err(err).Send()
+					return
+				}
+			}
+
+			log.Info().Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
 			break
 
 		case QuizChangeQuestion:
