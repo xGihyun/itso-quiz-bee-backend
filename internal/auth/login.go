@@ -61,9 +61,11 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		Value:    user.UserID,
 		Path:     "/",
 		SameSite: http.SameSiteNoneMode,
-		Secure:   true,
+		Secure:   false,
+		HttpOnly: true,
+		Domain:   "http://192.168.1.2:3001",
 	}
 	http.SetCookie(w, &cookie)
 
-	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Successfully logged in."}
+	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Successfully logged in.", Data: user}
 }

@@ -13,15 +13,19 @@ import (
 type Event string
 
 const (
-	QuizUpdateStatus   Event = "quiz-update-status"
-	QuizStart          Event = "quiz-start"
-	QuizPause          Event = "quiz-pause"
-	QuizResume         Event = "quiz-resume"
-	QuizEnd            Event = "quiz-end"
-	QuizChangeQuestion Event = "quiz-change-question"
-	QuizSubmitAnswer   Event = "quiz-submit-answer"
-	QuizSelectAnswer   Event = "quiz-select-answer"
-	QuizTypeAnswer     Event = "quiz-type-answer"
+	QuizUpdateStatus     Event = "quiz-update-status"
+	QuizStart            Event = "quiz-start"
+	QuizPause            Event = "quiz-pause"
+	QuizResume           Event = "quiz-resume"
+	QuizEnd              Event = "quiz-end"
+	QuizChangeQuestion   Event = "quiz-change-question"
+	QuizSubmitAnswer     Event = "quiz-submit-answer"
+	QuizSelectAnswer     Event = "quiz-select-answer"
+	QuizTypeAnswer       Event = "quiz-type-answer"
+	QuizDisableAnswering Event = "quiz-disable-answering"
+
+	QuizStartTimer Event = "quiz-start-timer"
+	QuizTimerPass  Event = "quiz-timer-pass"
 
 	UserJoin  Event = "user-join"
 	UserLeave Event = "user-leave"
@@ -78,7 +82,6 @@ func (c *Client) Read() {
 
 	ctx := context.Background()
 
-	// TODO: Do stuff based on request
 	quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
 
 	for {

@@ -16,6 +16,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 
+	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -100,9 +101,16 @@ func main() {
 		log.Fatal().Msg("PORT not found.")
 	}
 
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://192.168.1.2:3001"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+
 	server := http.Server{
-		Addr:    ":" + port,
-		Handler: env.middleware.RequestLogger(router),
+		Addr:    "192.168.1.2:" + port,
+		Handler: corsHandler.Handler(env.middleware.RequestLogger(router)),
 	}
 
 	log.Info().Msg(fmt.Sprintf("Starting server on port: %s", port))

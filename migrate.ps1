@@ -1,0 +1,1 @@
+goose postgres postgresql://postgresn:HelloWorld123@0.0.0.0:5432/itso-quiz-bee up -dir ./internal/database/migrations/
