@@ -14,10 +14,10 @@ type Event string
 
 const (
 	QuizUpdateStatus     Event = "quiz-update-status"
-	QuizStart            Event = "quiz-start"
-	QuizPause            Event = "quiz-pause"
-	QuizResume           Event = "quiz-resume"
-	QuizEnd              Event = "quiz-end"
+	// QuizStart            Event = "quiz-start"
+	// QuizPause            Event = "quiz-pause"
+	// QuizResume           Event = "quiz-resume"
+	// QuizEnd              Event = "quiz-end"
 	QuizChangeQuestion   Event = "quiz-change-question"
 	QuizSubmitAnswer     Event = "quiz-submit-answer"
 	QuizSelectAnswer     Event = "quiz-select-answer"
@@ -51,10 +51,10 @@ type QuizUpdateStatusRequest struct {
 	QuizQuestionID *string `json:"quiz_question_id,omitempty"`
 }
 
-type QuizStartRequest struct {
-	quiz.UpdateStatusRequest
-	QuizQuestionID string `json:"quiz_question_id"`
-}
+// type QuizStartRequest struct {
+// 	quiz.UpdateStatusRequest
+// 	QuizQuestionID string `json:"quiz_question_id"`
+// }
 
 type QuizChangeQuestionRequest struct {
 	QuizID string `json:"quiz_id"`
@@ -105,29 +105,6 @@ func (c *Client) Read() {
 		request.UserID = c.ID
 
 		switch request.Event {
-		case QuizStart:
-			var data QuizStartRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateStatusByID(ctx, quiz.UpdateStatusRequest{QuizID: data.QuizID, Status: data.Status}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
-				QuizID:         data.QuizID,
-				QuizQuestionID: data.QuizQuestionID,
-			}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			log.Info().Msg("Quiz has started.")
-			break
 		case QuizUpdateStatus:
 			var data QuizUpdateStatusRequest
 

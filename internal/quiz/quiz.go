@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"context"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -84,6 +85,7 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 		quizzes.description,
 		quizzes.lobby_id,
 		quizzes.status,
+		quizzes.duration,
 		(
 			SELECT jsonb_agg(
 				jsonb_build_object(
@@ -116,7 +118,7 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 
 	var quiz QuizResponse
 
-	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Questions); err != nil {
+	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Duration, &quiz.Questions); err != nil {
 		return QuizResponse{}, err
 	}
 
@@ -124,11 +126,12 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 }
 
 type BasicInfo struct {
-	QuizID      string  `json:"quiz_id"`
-	Name        string  `json:"name"`
-	Description *string `json:"description"`
-	Status      Status  `json:"status"`
-	LobbyID     *string `json:"lobby_id"`
+	QuizID      string         `json:"quiz_id"`
+	Name        string         `json:"name"`
+	Description *string        `json:"description"`
+	Status      Status         `json:"status"`
+	LobbyID     *string        `json:"lobby_id"`
+	Duration    *time.Duration `json:"duration"`
 }
 
 func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
