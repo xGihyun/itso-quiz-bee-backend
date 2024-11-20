@@ -96,20 +96,30 @@ func main() {
 
 	router.Handle("GET /api/quizzes/{quiz_id}/users/answers", api.HTTPHandler(env.quiz.GetWrittenAnswer))
 
+	host, ok := os.LookupEnv("HOST")
+	if !ok {
+		log.Fatal().Msg("HOST not found.")
+	}
+
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		log.Fatal().Msg("PORT not found.")
 	}
 
+	frontendPort, ok := os.LookupEnv("FRONTEND_PORT")
+	if !ok {
+		log.Fatal().Msg("FRONTEND_PORT not found.")
+	}
+
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://192.168.1.2:3001"},
+		AllowedOrigins:   []string{"http://" + host + ":" + frontendPort},
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
 
 	server := http.Server{
-		Addr:    "192.168.1.2:" + port,
+		Addr:    host + ":" + port,
 		Handler: corsHandler.Handler(env.middleware.RequestLogger(router)),
 	}
 

@@ -30,7 +30,7 @@ func (p *Pool) Start() {
 		case client := <-p.Register:
 			p.Clients[client] = true
 
-			log.Info().Msg("User has joined.")
+			log.Info().Msg("User has connected.")
 
 			for client := range p.Clients {
 				client.Conn.WriteJSON(Request{Event: UserJoin})

@@ -61,6 +61,10 @@ type QuizChangeQuestionRequest struct {
 	quiz.Question
 }
 
+type QuizJoinRequest struct {
+	QuizID string `json:"quiz_id"`
+}
+
 type QuizSubmitAnswerRequest struct {
 	UserID         string               `json:"user_id"`
 	QuizID         string               `json:"quiz_id"`
@@ -225,6 +229,40 @@ func (c *Client) Read() {
 
 		case QuizTypeAnswer:
 			log.Info().Msg("Answer typed.")
+			break
+
+		case UserJoin:
+			log.Info().Msg("User Join!")
+
+			var data QuizJoinRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			if err := quizRepo.Join(ctx, quiz.JoinRequest{
+				UserID: c.ID,
+				QuizID: data.QuizID,
+			}); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			user, err := quizRepo.GetUser(ctx, c.ID)
+			if err != nil {
+				log.Error().Err(err).Send()
+			}
+
+			log.Info().Msg(fmt.Sprintf("%s", user.FirstName))
+
+			msg, err := json.Marshal(user)
+			if err != nil {
+				log.Error().Err(err).Send()
+			}
+			request.Data = msg
+
+			log.Info().Msg(fmt.Sprintf("%s %s has joined.", user.FirstName, user.LastName))
 			break
 
 		case Heartbeat:

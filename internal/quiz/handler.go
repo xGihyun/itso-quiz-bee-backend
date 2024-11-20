@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
@@ -236,6 +237,14 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 
 	question, err := s.repo.GetCurrentQuestion(ctx, quizID)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.Response{
+				Error:      err,
+				StatusCode: http.StatusNotFound,
+				Status:     api.Fail,
+			}
+		}
+
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
