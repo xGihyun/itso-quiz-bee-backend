@@ -63,7 +63,6 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		SameSite: http.SameSiteNoneMode,
 		Secure:   false,
 		HttpOnly: true,
-		// Domain:   "http://192.168.1.2:3001",
 	}
 	http.SetCookie(w, &cookie)
 
