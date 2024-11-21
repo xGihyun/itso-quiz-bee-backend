@@ -14,10 +14,10 @@ type Event string
 
 const (
 	QuizUpdateStatus     Event = "quiz-update-status"
-	QuizStart            Event = "quiz-start"
-	QuizPause            Event = "quiz-pause"
-	QuizResume           Event = "quiz-resume"
-	QuizEnd              Event = "quiz-end"
+	// QuizStart            Event = "quiz-start"
+	// QuizPause            Event = "quiz-pause"
+	// QuizResume           Event = "quiz-resume"
+	// QuizEnd              Event = "quiz-end"
 	QuizChangeQuestion   Event = "quiz-change-question"
 	QuizSubmitAnswer     Event = "quiz-submit-answer"
 	QuizSelectAnswer     Event = "quiz-select-answer"
@@ -51,14 +51,18 @@ type QuizUpdateStatusRequest struct {
 	QuizQuestionID *string `json:"quiz_question_id,omitempty"`
 }
 
-type QuizStartRequest struct {
-	quiz.UpdateStatusRequest
-	QuizQuestionID string `json:"quiz_question_id"`
-}
+// type QuizStartRequest struct {
+// 	quiz.UpdateStatusRequest
+// 	QuizQuestionID string `json:"quiz_question_id"`
+// }
 
 type QuizChangeQuestionRequest struct {
 	QuizID string `json:"quiz_id"`
 	quiz.Question
+}
+
+type QuizJoinRequest struct {
+	QuizID string `json:"quiz_id"`
 }
 
 type QuizSubmitAnswerRequest struct {
@@ -101,29 +105,6 @@ func (c *Client) Read() {
 		request.UserID = c.ID
 
 		switch request.Event {
-		case QuizStart:
-			var data QuizStartRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateStatusByID(ctx, quiz.UpdateStatusRequest{QuizID: data.QuizID, Status: data.Status}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
-				QuizID:         data.QuizID,
-				QuizQuestionID: data.QuizQuestionID,
-			}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			log.Info().Msg("Quiz has started.")
-			break
 		case QuizUpdateStatus:
 			var data QuizUpdateStatusRequest
 
@@ -225,6 +206,40 @@ func (c *Client) Read() {
 
 		case QuizTypeAnswer:
 			log.Info().Msg("Answer typed.")
+			break
+
+		case UserJoin:
+			log.Info().Msg("User Join!")
+
+			var data QuizJoinRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			if err := quizRepo.Join(ctx, quiz.JoinRequest{
+				UserID: c.ID,
+				QuizID: data.QuizID,
+			}); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			user, err := quizRepo.GetUser(ctx, c.ID)
+			if err != nil {
+				log.Error().Err(err).Send()
+			}
+
+			log.Info().Msg(fmt.Sprintf("%s", user.FirstName))
+
+			msg, err := json.Marshal(user)
+			if err != nil {
+				log.Error().Err(err).Send()
+			}
+			request.Data = msg
+
+			log.Info().Msg(fmt.Sprintf("%s %s has joined.", user.FirstName, user.LastName))
 			break
 
 		case Heartbeat:

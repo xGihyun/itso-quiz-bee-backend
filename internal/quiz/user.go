@@ -16,6 +16,8 @@ func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) error 
 	sql := `
 	INSERT INTO users_in_quizzes (user_id, quiz_id)
 	VALUES ($1, $2)
+	ON CONFLICT(user_id, quiz_id)
+	DO NOTHING
 	`
 
 	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, data.QuizID); err != nil {
@@ -51,6 +53,29 @@ func (dr *DatabaseRepository) UpdateCurrentQuestion(ctx context.Context, data Up
 type User struct {
 	UserID string `json:"user_id"`
 	user.Detail
+}
+
+func (dr *DatabaseRepository) GetUser(ctx context.Context, userID string) (User, error) {
+	sql := `
+	SELECT 
+		users_in_quizzes.user_id,
+		user_details.first_name,
+		user_details.middle_name,
+		user_details.last_name
+	FROM users_in_quizzes
+	JOIN user_details ON user_details.user_id = users_in_quizzes.user_id
+	WHERE users_in_quizzes.user_id = ($1)
+	`
+
+	row := dr.Querier.QueryRow(ctx, sql, userID)
+
+	var user User
+
+	if err := row.Scan(&user.UserID, &user.FirstName, &user.MiddleName, &user.LastName); err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }
 
 func (dr *DatabaseRepository) GetAllUsers(ctx context.Context, quizID string) ([]User, error) {

@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"context"
+	"time"
 )
 
 type QuestionVariant string
@@ -19,6 +20,7 @@ type Question struct {
 	Points         int16           `json:"points"`
 	OrderNumber    int16           `json:"order_number"`
 	Answers        []Answer        `json:"answers"`
+	Duration       *time.Duration  `json:"duration"`
 }
 
 type NewQuestion struct {
@@ -27,23 +29,35 @@ type NewQuestion struct {
 	Variant        QuestionVariant `json:"variant"`
 	Points         int16           `json:"points"`
 	// OrderNumber int16           `json:"order_number"`
-	Answers []NewAnswer `json:"answers"`
+	Answers  []NewAnswer    `json:"answers"`
+	Duration *time.Duration `json:"duration"`
 }
 
 func (dr *DatabaseRepository) CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error {
 	sql := `
-	INSERT INTO quiz_questions (quiz_question_id, content, variant, points, order_number, quiz_id)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	INSERT INTO quiz_questions (quiz_question_id, content, variant, points, order_number, duration, quiz_id)
+	VALUES 
+		($1, $2, $3, $4, $5, 
+			CASE WHEN $6 IS NOT NULL
+			THEN make_interval(secs => $6)
+			ELSE NULL
+			END
+		$7)
 	ON CONFLICT(quiz_question_id)
 	DO UPDATE SET
 		content = ($2),
 		variant = ($3),
 		points = ($4),
-		order_number = ($5)
+		order_number = ($5),
+		duration = 
+			CASE WHEN $6 IS NOT NULL
+			THEN make_interval(secs => $6)
+			ELSE NULL
+			END
 	RETURNING quiz_question_id
 	`
 
-	row := dr.Querier.QueryRow(ctx, sql, question.QuizQuestionID, question.Content, question.Variant, question.Points, orderNumber, quizID)
+	row := dr.Querier.QueryRow(ctx, sql, question.QuizQuestionID, question.Content, question.Variant, question.Points, orderNumber, question.Duration, quizID)
 
 	var questionID string
 
@@ -74,6 +88,7 @@ func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID str
 			'variant', quiz_questions.variant,
 			'points', quiz_questions.points,
 			'order_number', quiz_questions.order_number,
+			'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
 			'answers', (
 				SELECT jsonb_agg(
 					jsonb_build_object(
@@ -99,6 +114,7 @@ func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID str
 		return Question{}, err
 	}
 
+	// NOTE: Just to make sure the answers don't get leaked xD
 	question.Answers = []Answer{}
 
 	return question, nil
