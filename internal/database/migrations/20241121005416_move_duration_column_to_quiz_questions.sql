@@ -1,8 +1,9 @@
 -- +goose Up
 -- +goose StatementBegin
 ALTER TABLE quizzes
-DROP COLUMN start_at,
-DROP COLUMN end_at,
+DROP COLUMN duration;
+
+ALTER TABLE quiz_questions
 ADD COLUMN duration INTERVAL;
 -- +goose StatementEnd
 

@@ -2,7 +2,6 @@ package quiz
 
 import (
 	"context"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -44,10 +43,6 @@ func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuizRequest) e
 		return err
 	}
 
-	// if data.LobbyID != nil && *data.LobbyID == "" {
-	// 	data.LobbyID = nil
-	// }
-
 	_, err = dr.Querier.Exec(ctx, sql, data.QuizID, data.Name, data.Description, data.Status, data.LobbyID)
 	if err != nil {
 		return err
@@ -85,7 +80,6 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 		quizzes.description,
 		quizzes.lobby_id,
 		quizzes.status,
-		quizzes.duration,
 		(
 			SELECT jsonb_agg(
 				jsonb_build_object(
@@ -94,6 +88,7 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 					'variant', quiz_questions.variant,
 					'points', quiz_questions.points,
 					'order_number', quiz_questions.order_number,
+					'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
 					'answers', (
 						SELECT jsonb_agg(
 							jsonb_build_object(
@@ -118,7 +113,7 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 
 	var quiz QuizResponse
 
-	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Duration, &quiz.Questions); err != nil {
+	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Questions); err != nil {
 		return QuizResponse{}, err
 	}
 
@@ -131,7 +126,6 @@ type BasicInfo struct {
 	Description *string        `json:"description"`
 	Status      Status         `json:"status"`
 	LobbyID     *string        `json:"lobby_id"`
-	Duration    *time.Duration `json:"duration"`
 }
 
 func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
@@ -147,7 +141,7 @@ func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
 
 	quizzes, err := pgx.CollectRows(rows, pgx.RowToStructByName[BasicInfo])
 	if err != nil {
-		return nil, err
+		return []BasicInfo{}, err
 	}
 
 	return quizzes, nil
