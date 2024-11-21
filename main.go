@@ -102,14 +102,14 @@ func main() {
 	}
 
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://192.168.1.2:3001"},
+		AllowedOrigins:   []string{"http://localhost:3001"},
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,
 	})
 
 	server := http.Server{
-		Addr:    "192.168.1.2:" + port,
+		Addr:    ":" + port,
 		Handler: corsHandler.Handler(env.middleware.RequestLogger(router)),
 	}
 
