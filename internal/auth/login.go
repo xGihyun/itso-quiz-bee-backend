@@ -9,28 +9,24 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-type LoginRequestData struct {
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
-	// w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	// w.Header().Set("Content-Type", "application/json")
-
 	if _, err := r.Cookie("session"); err != http.ErrNoCookie {
 		return api.Response{
 			Error:      err,
 			Message:    "User session exists.",
 			StatusCode: http.StatusConflict,
+			Status:     api.Fail,
 		}
 	}
 
 	ctx := context.Background()
 
-	var data LoginRequestData
+	var data LoginRequest
 
 	decoder := json.NewDecoder(r.Body)
 
@@ -38,6 +34,7 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
 		}
 	}
 
@@ -48,23 +45,27 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 
 	row := d.DB.QueryRow(ctx, sql, data.Email, data.Password)
 
-	var user user.User
+	var user user.UserResponse
 
 	if err := row.Scan(&user.UserID, &user.Email, &user.Role); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusNotFound,
+			Status:     api.Fail,
 		}
 	}
 
+	// TODO: Change `Value` to something else
 	cookie := http.Cookie{
 		Name:     "session",
 		Value:    user.UserID,
 		Path:     "/",
 		SameSite: http.SameSiteNoneMode,
-		Secure:   true,
+		Secure:   false,
+		HttpOnly: true,
+		Domain:   "http://localhost:3001",
 	}
 	http.SetCookie(w, &cookie)
 
-	return api.Response{}
+	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Successfully logged in.", Data: user}
 }

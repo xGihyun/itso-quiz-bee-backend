@@ -2,16 +2,12 @@ package lobby
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"net/http"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xGihyun/itso-quiz-bee/internal/api"
+	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
 type Dependency struct {
-	DB *pgxpool.Pool
+	DB database.Querier
 }
 
 type Status string
@@ -21,106 +17,81 @@ const (
 	Closed Status = "closed"
 )
 
-type NewLobby struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Capacity    sql.NullInt16  `json:"capacity"`
-	Status      Status         `json:"status"`
+type NewLobbyRequest struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Capacity    *int16  `json:"capacity"`
+	Status      Status  `json:"status"`
+}
+
+type NewLobbyResponse struct {
+	LobbyID string `json:"lobby_id"`
+	Code    string `json:"code"`
 }
 
 const OTP_LENGTH = 6
 
 // TODO:
-// - Separate some logic in different functions
 // - Use transactions
-func (d Dependency) Create(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	var data NewLobby
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-		}
-	}
-
+func (dr *DatabaseRepository) Create(ctx context.Context, data NewLobbyRequest) (NewLobbyResponse, error) {
 	sql := `
-    INSERT INTO lobbies (name, description, capacity, status)
-    VALUES ($1, $2, $3, $4)
-    RETURNING lobby_id
-    `
+		INSERT INTO lobbies (name, description, capacity, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING lobby_id
+		`
 
-	row := d.DB.QueryRow(ctx, sql, data.Name, data.Description, data.Capacity, data.Status)
+	row := dr.Querier.QueryRow(ctx, sql, data.Name, data.Description, data.Capacity, data.Status)
 
 	var lobbyID string
 
 	if err := row.Scan(&lobbyID); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+		return NewLobbyResponse{}, err
 	}
 
 	code, err := GenerateOTP(OTP_LENGTH)
 	if err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+		return NewLobbyResponse{}, err
 	}
 
 	sql = `
-    INSERT INTO lobby_codes (code, lobby_id)
-    VALUES ($1, $2)
-    `
+		INSERT INTO lobby_codes (code, lobby_id)
+	    VALUES ($1, $2)
+		RETURNING code, lobby_id
+		`
 
-	if _, err := d.DB.Exec(ctx, sql, code, lobbyID); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+	row = dr.Querier.QueryRow(ctx, sql, code, lobbyID)
+
+	var lobby NewLobbyResponse
+
+	if err := row.Scan(&lobby.Code, &lobby.LobbyID); err != nil {
+		return NewLobbyResponse{}, err
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return lobby, nil
 }
 
-type JoinRequestData struct {
+type JoinRequest struct {
 	Code   string `json:"code"`
 	UserID string `json:"user_id"`
 }
 
-func (d Dependency) Join(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+type JoinResponse struct {
+	LobbyID string `json:"lobby_id"`
+}
 
-	var data JoinRequestData
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-		}
-	}
-
+func (dr *DatabaseRepository) Join(ctx context.Context, data JoinRequest) (JoinResponse, error) {
 	sql := `
-    SELECT lobby_id FROM lobby_codes
-    WHERE code = ($1)
+    SELECT lobby_codes.lobby_id FROM lobby_codes
+	JOIN lobbies ON lobbies.lobby_id = lobby_codes.lobby_id
+    WHERE lobby_codes.code = ($1) AND lobbies.status = 'open'
     `
 
-	var lobbyID string
+	var lobby JoinResponse
 
-	row := d.DB.QueryRow(ctx, sql, data.Code)
+	row := dr.Querier.QueryRow(ctx, sql, data.Code)
 
-	if err := row.Scan(&lobbyID); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusNotFound,
-			Message:    "Lobby with code " + data.Code + " not found.",
-		}
+	if err := row.Scan(&lobby.LobbyID); err != nil {
+		return JoinResponse{}, err
 	}
 
 	sql = `
@@ -128,12 +99,9 @@ func (d Dependency) Join(w http.ResponseWriter, r *http.Request) api.Response {
     VALUES ($1, $2)
     `
 
-	if _, err := d.DB.Exec(ctx, sql, data.UserID, lobbyID); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+	if _, err := dr.Querier.Exec(ctx, sql, data.UserID, lobby.LobbyID); err != nil {
+		return JoinResponse{}, err
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	return lobby, nil
 }

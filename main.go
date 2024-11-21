@@ -14,16 +14,21 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
+	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 
+	"github.com/rs/cors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 type Env struct {
-	user       user.Dependency
-	auth       auth.Dependency
-	lobby      lobby.Dependency
-	quiz       quiz.Dependency
+	auth auth.Dependency
+
+	user  user.Service
+	lobby lobby.Service
+	quiz  quiz.Service
+	ws    ws.Service
+
 	middleware middleware.Dependency
 }
 
@@ -48,39 +53,64 @@ func main() {
 
 	defer pool.Close()
 
+	wsPool := ws.NewPool()
+	go wsPool.Start()
+
 	env := &Env{
-		user:       user.Dependency{DB: pool},
 		auth:       auth.Dependency{DB: pool},
-		lobby:      lobby.Dependency{DB: pool},
-		quiz:       quiz.Dependency{DB: pool},
+		user:       *user.NewService(user.NewDatabaseRepository(pool)),
+		lobby:      *lobby.NewService(lobby.NewDatabaseRepository(pool)),
+		quiz:       *quiz.NewService(quiz.NewDatabaseRepository(pool)),
+		ws:         *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
 		middleware: middleware.Dependency{Log: log.Logger},
 	}
 
 	router := http.NewServeMux()
 
+	router.HandleFunc("GET /ws", env.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
-	router.Handle("POST /login", api.HTTPHandler(env.auth.Login))
-	router.Handle("POST /register", api.HTTPHandler(env.auth.Register))
+	router.Handle("GET /api/session", api.HTTPHandler(env.auth.GetCurrentUser))
+	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
+	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
-	router.Handle("GET /users/{id}", api.HTTPHandler(env.user.GetByID))
+	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
+	router.Handle("GET /api/users", api.HTTPHandler(env.user.GetAll))
 	// router.HandleFunc("POST /users", env.user.Create)
 
-	router.Handle("POST /lobbies", api.HTTPHandler(env.lobby.Create))
-	router.Handle("POST /lobbies/join", api.HTTPHandler(env.lobby.Join))
+	router.Handle("POST /api/lobbies", api.HTTPHandler(env.lobby.Create))
+	router.Handle("POST /api/lobbies/join", api.HTTPHandler(env.lobby.Join))
+	// router.Handle("GET /api/lobbies/{lobby_id}/quizzes", api.HTTPHandler(env.lobby.Create))
 
-	router.Handle("POST /quizzes", api.HTTPHandler(env.quiz.Create))
-	router.Handle("POST /quizzes/answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
-	router.Handle("GET /quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
+	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
+	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetAll))
+	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
+	router.Handle("POST /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.Create))
+	router.Handle("PATCH /api/quizzes/{quiz_id}/status", api.HTTPHandler(env.quiz.UpdateStatusByID))
+	router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.Join))
+	router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
+	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
+	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
+	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
+	router.Handle("GET /api/quizzes/{quiz_id}/users", api.HTTPHandler(env.quiz.GetAllUsers))
+
+	router.Handle("GET /api/quizzes/{quiz_id}/users/answers", api.HTTPHandler(env.quiz.GetWrittenAnswer))
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
 		log.Fatal().Msg("PORT not found.")
 	}
 
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:3001"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
+
 	server := http.Server{
 		Addr:    ":" + port,
-		Handler: env.middleware.RequestLogger(router),
+		Handler: corsHandler.Handler(env.middleware.RequestLogger(router)),
 	}
 
 	log.Info().Msg(fmt.Sprintf("Starting server on port: %s", port))

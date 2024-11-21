@@ -2,17 +2,9 @@ package user
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rs/zerolog/log"
-	"github.com/xGihyun/itso-quiz-bee/internal/api"
+	"github.com/jackc/pgx/v5"
 )
-
-type Dependency struct {
-	DB *pgxpool.Pool
-}
 
 type Role string
 
@@ -21,56 +13,77 @@ const (
 	Admin  Role = "admin"
 )
 
-type User struct {
+type UserRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     Role   `json:"role"`
+}
+
+type UserResponse struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	Role   Role   `json:"role"`
+	Detail
 }
 
-func (d Dependency) Create(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+type Detail struct {
+	FirstName  string  `json:"first_name"`
+	MiddleName *string `json:"middle_name"`
+	LastName   string  `json:"last_name"`
+}
 
+// TODO:
+// - Password hashing?
+// - Not sure if this should be on auth
+func (dr *DatabaseRepository) Create(ctx context.Context, data UserRequest) error {
 	sql := `
 	INSERT INTO users (email, password, role)
 	VALUES ($1, $2, $3)
 	`
 
-	if _, err := d.DB.Exec(ctx, sql, "gihyun@email.com", "password", Player); err != nil {
-		log.Print("Something went wrong: ", err)
-		http.Error(w, "Something went wrong", 500)
-
-		return
+	if _, err := dr.Querier.Exec(ctx, sql, data.Email, data.Password, data.Role); err != nil {
+		return err
 	}
 
-	log.Print("Create new user!")
-	w.WriteHeader(http.StatusCreated)
+	return nil
 }
 
-func (d Dependency) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
-	w.Header().Set("Content-Type", "application/json")
-	ctx := context.Background()
-
+func (dr *DatabaseRepository) GetByID(ctx context.Context, userID string) (UserResponse, error) {
 	query := "SELECT user_id, email, role FROM users WHERE user_id = ($1)"
 
-	id := r.PathValue("id")
+	row := dr.Querier.QueryRow(ctx, query, userID)
 
-	row := d.DB.QueryRow(ctx, query, id)
-
-	var user User
+	var user UserResponse
 
 	if err := row.Scan(&user.UserID, &user.Email, &user.Role); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusNotFound,
-		}
+		return UserResponse{}, err
 	}
 
-	if err := json.NewEncoder(w).Encode(user); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-		}
+	return user, nil
+}
+
+func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]UserResponse, error) {
+	query := `
+	SELECT 
+		users.user_id, 
+		users.email, 
+		users.role,
+		user_details.first_name,
+		user_details.middle_name,
+		user_details.last_name
+	FROM users
+	JOIN user_details ON user_details.user_id = users.user_id
+	`
+
+	rows, err := dr.Querier.Query(ctx, query)
+	if err != nil {
+		return []UserResponse{}, err
 	}
 
-	return api.Response{StatusCode: http.StatusCreated}
+	users, err := pgx.CollectRows(rows, pgx.RowToStructByName[UserResponse])
+	if err != nil {
+		return []UserResponse{}, err
+	}
+
+	return users, nil
 }
