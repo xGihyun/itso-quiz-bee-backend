@@ -9,29 +9,25 @@ import (
 type HTTPHandler func(w http.ResponseWriter, r *http.Request) Response
 
 func (fn HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-
 	res := fn(w, r)
 
-	log.Debug().Msg("I AM HERE")
+	if res.StatusCode >= 200 && res.StatusCode <= 299 {
+		res.Status = Success
+	} else if res.StatusCode >= 400 && res.StatusCode <= 499 {
+		res.Status = Fail
+	} else {
+		res.Status = Error
+	}
+
 	if res.Error != nil {
 		if res.Message == "" {
 			res.Message = res.Error.Error()
 		}
 
-		if res.Status == "" {
-			res.Status = Error
-		}
-
 		log.Error().Err(res.Error).Msg(res.Message)
-	} else {
-		// res.Status = Success
-		// res.StatusCode = 200
 	}
 
 	if err := res.Encode(w); err != nil {
-		log.Error().Err(err).Msg("Failed to encode JSON error response.")
-		return
+		log.Error().Err(err).Msg("Failed to encode JSON response.")
 	}
 }

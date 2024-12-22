@@ -22,14 +22,11 @@ import (
 )
 
 type Env struct {
-	auth auth.Dependency
+	auth auth.Service
 
 	user  user.Service
-	lobby lobby.Service
 	quiz  quiz.Service
 	ws    ws.Service
-
-	middleware middleware.Dependency
 }
 
 func main() {
@@ -57,12 +54,10 @@ func main() {
 	go wsPool.Start()
 
 	env := &Env{
-		auth:       auth.Dependency{DB: pool},
-		user:       *user.NewService(user.NewDatabaseRepository(pool)),
-		lobby:      *lobby.NewService(lobby.NewDatabaseRepository(pool)),
-		quiz:       *quiz.NewService(quiz.NewDatabaseRepository(pool)),
-		ws:         *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
-		middleware: middleware.Dependency{Log: log.Logger},
+		auth:  *auth.NewService(pool),
+		user:  *user.NewService(user.NewRepository(pool)),
+		quiz:  *quiz.NewService(quiz.NewDatabaseRepository(pool)),
+		ws:    *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
 	}
 
 	router := http.NewServeMux()
@@ -70,17 +65,13 @@ func main() {
 	router.HandleFunc("GET /ws", env.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
-	router.Handle("GET /api/session", api.HTTPHandler(env.auth.GetCurrentUser))
+	// router.Handle("GET /api/session", api.HTTPHandler(env.auth.GetCurrentUser))
 	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
 	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
 	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
 	router.Handle("GET /api/users", api.HTTPHandler(env.user.GetAll))
 	// router.HandleFunc("POST /users", env.user.Create)
-
-	router.Handle("POST /api/lobbies", api.HTTPHandler(env.lobby.Create))
-	router.Handle("POST /api/lobbies/join", api.HTTPHandler(env.lobby.Join))
-	// router.Handle("GET /api/lobbies/{lobby_id}/quizzes", api.HTTPHandler(env.lobby.Create))
 
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
 	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetAll))
@@ -98,17 +89,17 @@ func main() {
 
 	host, ok := os.LookupEnv("HOST")
 	if !ok {
-		log.Fatal().Msg("HOST not found.")
+		log.Fatal().Msg("HOST env not found.")
 	}
 
 	port, ok := os.LookupEnv("PORT")
 	if !ok {
-		log.Fatal().Msg("PORT not found.")
+		log.Fatal().Msg("PORT env not found.")
 	}
 
 	frontendPort, ok := os.LookupEnv("FRONTEND_PORT")
 	if !ok {
-		log.Fatal().Msg("FRONTEND_PORT not found.")
+		log.Fatal().Msg("FRONTEND_PORT env not found.")
 	}
 
 	corsHandler := cors.New(cors.Options{
@@ -120,7 +111,7 @@ func main() {
 
 	server := http.Server{
 		Addr:    host + ":" + port,
-		Handler: corsHandler.Handler(env.middleware.RequestLogger(router)),
+		Handler: corsHandler.Handler(middleware.RequestLogger(router)),
 	}
 
 	log.Info().Msg(fmt.Sprintf("Starting server on port: %s", port))

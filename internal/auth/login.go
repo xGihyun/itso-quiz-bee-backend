@@ -3,24 +3,26 @@ package auth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 type LoginRequest struct {
-	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
-func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
+func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
+	// TODO: Save session IDs on the server side using a more random and secure value.
 	if _, err := r.Cookie("session"); err != http.ErrNoCookie {
 		return api.Response{
 			Error:      err,
-			Message:    "User session exists.",
 			StatusCode: http.StatusConflict,
-			Status:     api.Fail,
+			Message:    "User session already exists.",
 		}
 	}
 
@@ -34,28 +36,37 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
+			Message:    "Invalid JSON request.",
 		}
 	}
 
 	sql := `
-	SELECT user_id, email, role FROM users
-	WHERE email = ($1) AND password = ($2)
+	SELECT user_id, created_at, username, name, role 
+    FROM users
+	WHERE username = ($1) AND password = ($2)
     `
 
-	row := d.DB.QueryRow(ctx, sql, data.Email, data.Password)
+	row := s.querier.QueryRow(ctx, sql, data.Username, data.Password)
 
-	var user user.UserResponse
+	var user user.GetUserResponse
 
-	if err := row.Scan(&user.UserID, &user.Email, &user.Role); err != nil {
+	if err := row.Scan(&user.UserID, &user.CreatedAt, &user.Username, &user.Name, &user.Role); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return api.Response{
+				Error:      err,
+				StatusCode: http.StatusNotFound,
+				Message:    "User not found.",
+			}
+		}
+
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusNotFound,
-			Status:     api.Fail,
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Failed to fetch user.",
 		}
 	}
 
-	// TODO: Change `Value` to something else
+	// TODO: Change `Value` to a more secure value
 	cookie := http.Cookie{
 		Name:     "session",
 		Value:    user.UserID,
@@ -67,5 +78,9 @@ func (d Dependency) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 	http.SetCookie(w, &cookie)
 
-	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Successfully logged in.", Data: user}
+	return api.Response{
+		StatusCode: http.StatusOK,
+		Data:       user,
+		Message:    "Successfully logged in.",
+	}
 }

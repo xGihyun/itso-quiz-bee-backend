@@ -9,7 +9,8 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-func (d Dependency) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.Response {
+// NOTE: Not sure if this is still needed.
+func (s Service) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	cookie, err := r.Cookie("session")
@@ -32,7 +33,7 @@ func (d Dependency) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.R
 		}
 	}
 
-	userRepo := user.NewDatabaseRepository(d.DB)
+	userRepo := user.NewRepository(s.querier)
 
 	user, err := userRepo.GetByID(ctx, cookie.Value)
 	if err != nil {

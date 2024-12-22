@@ -14,39 +14,16 @@ type Querier interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// type PostgresRepository struct {
-// 	Querier Querier
-// }
-//
-// func NewPostgresQuerier(q Querier) *PostgresRepository {
-// 	return &PostgresRepository{
-// 		Querier: q,
-// 	}
-// }
+func Transaction(ctx context.Context, tx pgx.Tx, fn func() error) error {
+	if err := fn(); err != nil {
+		_ = tx.Rollback(ctx)
 
-// import k
-// 	"net/http"
-//
-// 	"github.com/jackc/pgx/v5"
-// 	"github.com/xGihyun/itso-quiz-bee/internal/api"
-// )
-//
-// func TxCommitOrRollback(tx pgx.Tx, res api.Response) api.Response {
-// 	if res.Error != nil {
-// 		if err := tx.Rollback(); err != nil {
-// 			return api.Response{
-// 				Error:      err,
-// 				StatusCode: http.StatusInternalServerError,
-// 			}
-// 		}
-// 	}
-//
-// 	if err := tx.Commit(); err != nil {
-// 		return api.Response{
-// 			Error:      err,
-// 			StatusCode: http.StatusInternalServerError,
-// 		}
-// 	}
-//
-// 	return api.Response{}
-// }
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}

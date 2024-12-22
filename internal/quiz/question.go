@@ -2,7 +2,6 @@ package quiz
 
 import (
 	"context"
-	"time"
 )
 
 type QuestionVariant string
@@ -13,73 +12,12 @@ const (
 	Written        QuestionVariant = "written"
 )
 
-type Question struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	OrderNumber    int16           `json:"order_number"`
-	Answers        []Answer        `json:"answers"`
-	Duration       *time.Duration  `json:"duration"`
-}
-
-type NewQuestion struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	// OrderNumber int16           `json:"order_number"`
-	Answers  []NewAnswer    `json:"answers"`
-	Duration *time.Duration `json:"duration"`
-}
-
-func (dr *DatabaseRepository) CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error {
-	sql := `
-	INSERT INTO quiz_questions (quiz_question_id, content, variant, points, order_number, duration, quiz_id)
-	VALUES 
-		($1, $2, $3, $4, $5, 
-			CASE WHEN $6 IS NOT NULL
-			THEN make_interval(secs => $6)
-			ELSE NULL
-			END
-		$7)
-	ON CONFLICT(quiz_question_id)
-	DO UPDATE SET
-		content = ($2),
-		variant = ($3),
-		points = ($4),
-		order_number = ($5),
-		duration = 
-			CASE WHEN $6 IS NOT NULL
-			THEN make_interval(secs => $6)
-			ELSE NULL
-			END
-	RETURNING quiz_question_id
-	`
-
-	row := dr.Querier.QueryRow(ctx, sql, question.QuizQuestionID, question.Content, question.Variant, question.Points, orderNumber, question.Duration, quizID)
-
-	var questionID string
-
-	if err := row.Scan(&questionID); err != nil {
-		return err
-	}
-
-	for _, answer := range question.Answers {
-		if err := dr.CreateAnswer(ctx, answer, questionID); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 type GetCurrentQuestionRequest struct {
 	UserID string `json:"user_id"`
 	QuizID string `json:"quiz_id"`
 }
 
-func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
+func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
 	sql := `
 	SELECT 
 		jsonb_build_object(
@@ -106,7 +44,7 @@ func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID str
 	WHERE users_in_quizzes.quiz_id = ($1)
 	`
 
-	row := dr.Querier.QueryRow(ctx, sql, quizID)
+	row := r.querier.QueryRow(ctx, sql, quizID)
 
 	var question Question
 

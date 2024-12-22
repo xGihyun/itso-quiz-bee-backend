@@ -24,11 +24,7 @@ type PlayerAnswer struct {
 	IsCorrect      bool    `json:"is_correct"`
 }
 
-// TODO:
-// - Also get score from written answers and add it with selected answers
-// - Put SQL queries in their own .sql files maybe (?)
-
-func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]Result, error) {
+func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, error) {
 	sql := `
 	WITH player_selected_scores AS (
 		SELECT 
@@ -81,7 +77,7 @@ func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]
 	GROUP BY user_id;
 	`
 
-	rows, err := dr.Querier.Query(ctx, sql, quizID)
+	rows, err := r.querier.Query(ctx, sql, quizID)
 	if err != nil {
 		return []Result{}, err
 	}
@@ -164,7 +160,7 @@ func (dr *DatabaseRepository) GetResults(ctx context.Context, quizID string) ([]
 	`
 
 	for _, score := range scores {
-		rows, err := dr.Querier.Query(ctx, sql, quizID, score.UserID)
+		rows, err := r.querier.Query(ctx, sql, quizID, score.UserID)
 		if err != nil {
 			return []Result{}, err
 		}

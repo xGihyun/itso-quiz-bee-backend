@@ -13,7 +13,7 @@ import (
 func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data NewQuizRequest
+	var data Quiz
 
 	decoder := json.NewDecoder(r.Body)
 
