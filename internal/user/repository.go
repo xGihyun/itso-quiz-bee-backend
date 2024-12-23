@@ -30,7 +30,7 @@ func NewRepository(q database.Querier) Repository {
 func (r *repository) Create(ctx context.Context, data CreateUserRequest) error {
 	sql := `
 	INSERT INTO users (username, password, role, name)
-	VALUES ($1, $2, $3, $4, $5, $6)
+	VALUES ($1, $2, $3, $4)
 	`
 
 	if _, err := r.querier.Exec(ctx, sql, data.Username, data.Password, data.Role, data.Name); err != nil {

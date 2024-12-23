@@ -53,10 +53,10 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	return api.Response{Data: result, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched quiz."}
 }
 
-func (s *Service) GetAll(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	results, err := s.repo.GetAll(ctx)
+	results, err := s.repo.GetMany(ctx)
 	if err != nil {
 		return api.Response{
 			Error:      err,
@@ -86,10 +86,10 @@ func (s *Service) GetResults(w http.ResponseWriter, r *http.Request) api.Respons
 	return api.Response{Data: results, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched quiz results."}
 }
 
-func (qs *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
-	var data NewSelectedAnswer
+	var data AddPlayerRequest
 
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -121,105 +121,10 @@ func (qs *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	// TODO: Get rid of this
 	data.UserID = cookie.Value
 
-	if err := qs.repo.CreateSelectedAnswer(ctx, data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
-		}
-	}
-
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
-}
-
-func (qs *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	var data NewWrittenAnswerRequest
-
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		switch {
-		case errors.Is(err, http.ErrNoCookie):
-			return api.Response{
-				Error:      err,
-				Message:    "Cookie not found",
-				StatusCode: http.StatusBadRequest,
-				Status:     api.Fail,
-			}
-		default:
-			return api.Response{
-				Error:      err,
-				Message:    "Server cookie error.",
-				StatusCode: http.StatusInternalServerError,
-				Status:     api.Error,
-			}
-		}
-	}
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
-		}
-	}
-
-	data.UserID = cookie.Value
-
-	if err := qs.repo.CreateWrittenAnswer(ctx, data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
-		}
-	}
-
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
-}
-
-func (qs *Service) Join(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	var data JoinRequest
-
-	cookie, err := r.Cookie("session")
-	if err != nil {
-		switch {
-		case errors.Is(err, http.ErrNoCookie):
-			return api.Response{
-				Error:      err,
-				Message:    "Cookie not found",
-				StatusCode: http.StatusBadRequest,
-				Status:     api.Fail,
-			}
-		default:
-			return api.Response{
-				Error:      err,
-				Message:    "Server cookie error.",
-				StatusCode: http.StatusInternalServerError,
-				Status:     api.Error,
-			}
-		}
-	}
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
-		}
-	}
-
-	data.UserID = cookie.Value
-
-	if err := qs.repo.Join(ctx, data); err != nil {
+	if err := s.repo.AddPlayer(ctx, data); err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
@@ -255,72 +160,12 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Fetched current question.", Data: question}
 }
 
-func (s *Service) UpdateByID(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	var data BasicInfo
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
-		}
-	}
-
-	if err := s.repo.UpdateByID(ctx, data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
-		}
-	}
-
-	return api.Response{
-		Status:     api.Success,
-		StatusCode: http.StatusOK,
-		Message:    "Updated quiz info.",
-	}
-}
-
-func (s *Service) UpdateStatusByID(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	var data UpdateStatusRequest
-
-	decoder := json.NewDecoder(r.Body)
-
-	if err := decoder.Decode(&data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
-		}
-	}
-
-	if err := s.repo.UpdateStatusByID(ctx, data); err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
-		}
-	}
-
-	return api.Response{
-		Status:     api.Success,
-		StatusCode: http.StatusOK,
-		Message:    "Updated quiz status.",
-	}
-}
-
-func (s *Service) GetAllUsers(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	quizID := r.PathValue("quiz_id")
 
-	users, err := s.repo.GetAllUsers(ctx, quizID)
+	users, err := s.repo.GetPlayers(ctx, quizID)
 	if err != nil {
 		return api.Response{
 			Error:      err,
@@ -332,8 +177,10 @@ func (s *Service) GetAllUsers(w http.ResponseWriter, r *http.Request) api.Respon
 	return api.Response{Data: users, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched all users in quiz."}
 }
 
-func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
+
+	var data CreateSelectedAnswerRequest
 
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -355,6 +202,99 @@ func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.R
 		}
 	}
 
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&data); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
+		}
+	}
+
+	data.UserID = cookie.Value
+
+	if err := s.repo.CreateSelectedAnswer(ctx, data); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
+}
+
+func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	var data CreateWrittenAnswerRequest
+
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			return api.Response{
+				Error:      err,
+				Message:    "Cookie not found",
+				StatusCode: http.StatusBadRequest,
+				Status:     api.Fail,
+			}
+		default:
+			return api.Response{
+				Error:      err,
+				Message:    "Server cookie error.",
+				StatusCode: http.StatusInternalServerError,
+				Status:     api.Error,
+			}
+		}
+	}
+
+	decoder := json.NewDecoder(r.Body)
+
+	if err := decoder.Decode(&data); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusBadRequest,
+			Status:     api.Fail,
+		}
+	}
+
+	data.UserID = cookie.Value
+
+	if err := s.repo.CreateWrittenAnswer(ctx, data); err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Status:     api.Error,
+		}
+	}
+
+	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
+}
+
+func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	// TODO: Use `user_id`
+	cookie, err := r.Cookie("session")
+	if err != nil {
+		switch {
+		case errors.Is(err, http.ErrNoCookie):
+			return api.Response{
+				Error:      err,
+				Message:    "Session not found",
+				StatusCode: http.StatusBadRequest,
+			}
+		default:
+			return api.Response{
+				Error:      err,
+				Message:    "Failed to fetch session.",
+				StatusCode: http.StatusInternalServerError,
+			}
+		}
+	}
+
 	quizID := r.PathValue("quiz_id")
 
 	answer, err := s.repo.GetWrittenAnswer(ctx, quizID, cookie.Value)
@@ -362,13 +302,11 @@ func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.R
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusNotFound,
-			Status:     api.Fail,
 			Message:    "Written answer not found.",
 		}
 	}
 
 	return api.Response{
-		Status:     api.Success,
 		StatusCode: http.StatusOK,
 		Message:    "Fetched written answer.",
 		Data:       answer,

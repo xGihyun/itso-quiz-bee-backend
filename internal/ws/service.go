@@ -1,33 +1,16 @@
 package ws
 
 import (
-	// "context"
-
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
 type Service struct {
-	repo DatabaseRepository
-	pool *Pool
+	pool    *Pool
+	querier database.Querier
 }
 
-type Repository interface {
-	// HandleConnection()
-}
-
-type DatabaseRepository struct {
-	Querier database.Querier
-}
-
-func NewDatabaseRepository(q database.Querier) *DatabaseRepository {
-	return &DatabaseRepository{
-		Querier: q,
-	}
-}
-
-func NewService(repo DatabaseRepository, pool *Pool) *Service {
+func NewService(querier database.Querier) *Service {
 	return &Service{
-		repo: repo,
-		pool: pool,
+		querier: querier,
 	}
 }

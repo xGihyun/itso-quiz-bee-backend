@@ -54,9 +54,9 @@ func (r *repository) GetByID(ctx context.Context, quizID string) (Quiz, error) {
 	return quiz, nil
 }
 
-func (r *repository) GetAll(ctx context.Context) ([]BasicInfo, error) {
+func (r *repository) GetMany(ctx context.Context) ([]BasicInfo, error) {
 	sql := `
-	SELECT quiz_id, name, description,  status
+	SELECT quiz_id, name, description, status
 	FROM quizzes
 	`
 

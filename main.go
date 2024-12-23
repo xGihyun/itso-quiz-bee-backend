@@ -10,7 +10,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 	"github.com/xGihyun/itso-quiz-bee/internal/auth"
-	"github.com/xGihyun/itso-quiz-bee/internal/lobby"
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
@@ -56,7 +55,7 @@ func main() {
 	env := &Env{
 		auth:  *auth.NewService(pool),
 		user:  *user.NewService(user.NewRepository(pool)),
-		quiz:  *quiz.NewService(quiz.NewDatabaseRepository(pool)),
+		quiz:  *quiz.NewService(quiz.NewRepository(pool)),
 		ws:    *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
 	}
 
@@ -69,23 +68,23 @@ func main() {
 	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
 	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
 
-	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
 	router.Handle("GET /api/users", api.HTTPHandler(env.user.GetAll))
+	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
 	// router.HandleFunc("POST /users", env.user.Create)
 
+	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetMany))
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
-	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetAll))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
-	router.Handle("POST /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.Create))
-	router.Handle("PATCH /api/quizzes/{quiz_id}/status", api.HTTPHandler(env.quiz.UpdateStatusByID))
-	router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.Join))
-	router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
-	router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
 	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
-	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
-	router.Handle("GET /api/quizzes/{quiz_id}/users", api.HTTPHandler(env.quiz.GetAllUsers))
+	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
 
-	router.Handle("GET /api/quizzes/{quiz_id}/users/answers", api.HTTPHandler(env.quiz.GetWrittenAnswer))
+    // TODO: This endpoint is weird, there is room for improvement
+	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
+
+    // NOTE: No need for API endpoints since this would run via WebSocket
+	// router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.AddPlayer))
+	// router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
+	// router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
 
 	host, ok := os.LookupEnv("HOST")
 	if !ok {

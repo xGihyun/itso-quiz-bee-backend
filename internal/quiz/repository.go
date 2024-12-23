@@ -9,8 +9,9 @@ import (
 
 type Repository interface {
 	GetByID(ctx context.Context, quizID string) (Quiz, error)
-	GetAll(ctx context.Context) ([]BasicInfo, error)
+	GetMany(ctx context.Context) ([]BasicInfo, error)
 	Create(ctx context.Context, data Quiz) error
+	UpdateBasicInfo(ctx context.Context, data BasicInfo) error
 
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
@@ -21,6 +22,7 @@ type Repository interface {
 
 	AddPlayer(ctx context.Context, data AddPlayerRequest) error
 	GetPlayers(ctx context.Context, quizID string) ([]user.GetUserResponse, error)
+	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
 }
 
 type repository struct {

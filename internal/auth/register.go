@@ -21,21 +21,13 @@ func (s Service) Register(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
-            Message: "Invalid JSON request.",
+			Message:    "Invalid JSON request.",
 		}
 	}
 
-	sql := `
-    INSERT INTO users (username, password, role, name)
-    VALUES ($1, $2, $3, $4)
-	RETURNING user_id
-    `
+	userRepo := user.NewRepository(s.querier)
 
-	row := s.querier.QueryRow(ctx, sql, data.Username, data.Password, data.Role, data.Name)
-
-	var userID string
-
-	if err := row.Scan(&userID); err != nil {
+	if err := userRepo.Create(ctx, data); err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 			return api.Response{
 				Error:      err,
