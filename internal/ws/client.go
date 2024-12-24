@@ -17,9 +17,8 @@ type Event string
 
 const (
 	QuizUpdateStatus     Event = "quiz-update-status"
-	QuizChangeQuestion   Event = "quiz-change-question"
+	QuizUpdateQuestion   Event = "quiz-update-question"
 	QuizSubmitAnswer     Event = "quiz-submit-answer"
-	QuizSelectAnswer     Event = "quiz-select-answer"
 	QuizTypeAnswer       Event = "quiz-type-answer"
 	QuizDisableAnswering Event = "quiz-disable-answering"
 
@@ -33,9 +32,9 @@ const (
 )
 
 type Request struct {
-	Event  Event           `json:"event"`
-	Data   json.RawMessage `json:"data"`
-	UserID string          `json:"user_id"`
+	Event    Event           `json:"event"`
+	Data     json.RawMessage `json:"data"`
+	Response any             `json:"response"`
 }
 
 type Client struct {
@@ -44,28 +43,6 @@ type Client struct {
 	ID   string
 
 	querier database.Querier
-}
-
-type updateQuizRequest struct {
-	quiz.BasicInfo
-	QuizQuestionID *string `json:"quiz_question_id,omitempty"`
-}
-
-type updateQuestionRequest struct {
-	QuizID string `json:"quiz_id"`
-	quiz.Question
-}
-
-type addPlayerRequest struct {
-	QuizID string `json:"quiz_id"`
-}
-
-type submitAnswerRequest struct {
-	UserID         string               `json:"user_id"`
-	QuizID         string               `json:"quiz_id"`
-	QuizQuestionID string               `json:"quiz_question_id"`
-	Variant        quiz.QuestionVariant `json:"variant"`
-	Answer         json.RawMessage      `json:"answer"`
 }
 
 func (c *Client) Read() {
@@ -92,129 +69,81 @@ func (c *Client) Read() {
 			return
 		}
 
-		// NOTE: Is this necessary?
-		request.UserID = c.ID
-
 		switch request.Event {
 		case QuizUpdateStatus:
-			var data updateQuizRequest
+			var data quiz.LiveUpdateStatusRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			if err := quizRepo.UpdateBasicInfo(ctx, data.BasicInfo); err != nil {
+			question, err := quizRepo.LiveUpdateStatus(ctx, data)
+			if err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
-
-			if data.Status == quiz.Started && data.QuizQuestionID != nil {
-				if err := quizRepo.UpdatePlayersQuestion(ctx, quiz.UpdatePlayersQuestionRequest{
-					QuizID:         data.QuizID,
-					QuizQuestionID: *data.QuizQuestionID,
-				}); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-			}
+			request.Response = question
 
 			log.Info().Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
 			break
 
-		case QuizChangeQuestion:
-			var data updateQuestionRequest
+		case QuizUpdateQuestion:
+			var data quiz.LiveUpdateQuestionRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			if err := quizRepo.UpdatePlayersQuestion(ctx, quiz.UpdatePlayersQuestionRequest{
-				QuizID:         data.QuizID,
-				QuizQuestionID: data.QuizQuestionID,
-			}); err != nil {
+			if err := quizRepo.LiveUpdateQuestion(ctx, data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
+			request.Response = data.Question
 
-			log.Info().Msg("Change question.")
+			log.Info().Msg(fmt.Sprintf("Update to question #%s", data.OrderNumber))
 			break
 
 		case QuizSubmitAnswer:
-			var data submitAnswerRequest
+			var data quiz.LiveSubmitAnswerRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			switch data.Variant {
-			case quiz.Written:
-				var answer quiz.CreateWrittenAnswerRequest
-
-				if err := json.Unmarshal(data.Answer, &answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				answer.UserID = c.ID
-
-				if err := quizRepo.CreateWrittenAnswer(ctx, answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				log.Info().Msg("Submitted written answer.")
-				break
-
-			default:
-				log.Warn().Msg("Invalid question variant.")
+			if err := quizRepo.LiveSubmitAnswer(ctx, data); err != nil {
+				log.Error().Err(err).Send()
+				return
 			}
 
-			break
-
-		case QuizSelectAnswer:
-			log.Info().Msg("Answer selected.")
+			log.Info().Msg("Submitted answer: " + data.Content)
 			break
 
 		case QuizTypeAnswer:
-			log.Info().Msg("Answer typed.")
 			break
 
 		case PlayerJoin:
-			log.Info().Msg("User Join!")
-
-			var data addPlayerRequest
+			var data quiz.AddPlayerRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			if err := quizRepo.AddPlayer(ctx, quiz.AddPlayerRequest{
+			user, err := quizRepo.LiveAddPlayer(ctx, quiz.AddPlayerRequest{
 				UserID: c.ID,
 				QuizID: data.QuizID,
-			}); err != nil {
+			})
+			if err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-            // TODO: Use user repo instead
-			user, err := quizRepo.GetUser(ctx, c.ID)
-			if err != nil {
-				log.Error().Err(err).Send()
-			}
+			request.Response = user
 
-			log.Info().Msg(fmt.Sprintf("%s", user.FirstName))
-
-			msg, err := json.Marshal(user)
-			if err != nil {
-				log.Error().Err(err).Send()
-			}
-			request.Data = msg
-
-			log.Info().Msg(fmt.Sprintf("%s %s has joined.", user.FirstName, user.LastName))
+			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
 			break
 
 		case Heartbeat:
@@ -228,6 +157,5 @@ func (c *Client) Read() {
 		log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
 
 		c.Pool.Broadcast <- request
-
 	}
 }

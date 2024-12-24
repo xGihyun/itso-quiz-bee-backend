@@ -39,17 +39,17 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	client := &Client{
-		Conn: conn,
-		Pool: s.pool,
-		repo: s.repo,
-		ID:   cookie.Value,
+		Conn:    conn,
+		Pool:    s.pool,
+		ID:      cookie.Value,
+		querier: s.querier,
 	}
 
 	s.pool.Register <- client
 
 	client.Read()
 
-	keepAlive(conn, time.Duration(25)*time.Second)
+	// keepAlive(conn, time.Duration(25)*time.Second)
 }
 
 func keepAlive(conn *websocket.Conn, timeout time.Duration) {

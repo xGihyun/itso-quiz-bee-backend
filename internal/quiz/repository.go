@@ -22,7 +22,11 @@ type Repository interface {
 
 	AddPlayer(ctx context.Context, data AddPlayerRequest) error
 	GetPlayers(ctx context.Context, quizID string) ([]user.GetUserResponse, error)
-	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
+
+	LiveUpdateStatus(ctx context.Context, data LiveUpdateStatusRequest) (Question, error)
+	LiveUpdateQuestion(ctx context.Context, data LiveUpdateQuestionRequest) error
+	LiveSubmitAnswer(ctx context.Context, data LiveSubmitAnswerRequest) error
+	LiveAddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error)
 }
 
 type repository struct {

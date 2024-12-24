@@ -32,9 +32,9 @@ func (p *Pool) Start() {
 
 			log.Info().Msg("User has connected.")
 
-			for client := range p.Clients {
-				client.Conn.WriteJSON(Request{Event: UserJoin})
-			}
+			// for client := range p.Clients {
+			// 	client.Conn.WriteJSON(Request{Event: PlayerJoin})
+			// }
 
 		case client := <-p.Unregister:
 			if _, ok := p.Clients[client]; ok {
@@ -42,7 +42,7 @@ func (p *Pool) Start() {
 
 				for client := range p.Clients {
 					fmt.Println(client)
-					client.Conn.WriteJSON(Request{Event: UserLeave})
+					client.Conn.WriteJSON(Request{Event: PlayerLeave})
 				}
 			}
 
