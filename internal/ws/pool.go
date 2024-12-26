@@ -31,30 +31,29 @@ func (p *Pool) Start() {
 			p.Clients[client] = true
 
 			log.Info().Msg("User has connected.")
-
-			// for client := range p.Clients {
-			// 	client.Conn.WriteJSON(Request{Event: PlayerJoin})
-			// }
+			log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(p.Clients)))
+			break
 
 		case client := <-p.Unregister:
 			if _, ok := p.Clients[client]; ok {
 				delete(p.Clients, client)
 
 				for client := range p.Clients {
-					fmt.Println(client)
 					client.Conn.WriteJSON(Request{Event: PlayerLeave})
 				}
+
+				log.Info().Msg("User has disconnected.")
+				log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(p.Clients)))
 			}
+			break
 
 		case message := <-p.Broadcast:
-			log.Info().Msg("Sending message to all clients...")
-
 			for client := range p.Clients {
 				if err := client.Conn.WriteJSON(message); err != nil {
 					log.Error().Err(err).Send()
-					return
 				}
 			}
+			break
 		}
 	}
 }

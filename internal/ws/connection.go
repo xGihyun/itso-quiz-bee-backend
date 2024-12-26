@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 )
@@ -25,7 +26,7 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 }
 
 func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("session")
+	session, err := r.Cookie("session")
 	if err != nil {
 		log.Error().Err(err).Send()
 		return
@@ -41,7 +42,8 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		Conn:    conn,
 		Pool:    s.pool,
-		ID:      cookie.Value,
+		ID:      uuid.NewString(),
+		UserID:  session.Value,
 		querier: s.querier,
 	}
 

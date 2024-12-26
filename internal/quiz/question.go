@@ -2,6 +2,7 @@ package quiz
 
 import (
 	"context"
+	"time"
 )
 
 type QuestionVariant string
@@ -12,11 +13,31 @@ const (
 	Written        QuestionVariant = "written"
 )
 
+type Question struct {
+	QuizQuestionID string          `json:"quiz_question_id"`
+	Content        string          `json:"content"`
+	Variant        QuestionVariant `json:"variant"`
+	Points         int16           `json:"points"`
+	OrderNumber    int16           `json:"order_number"`
+	Duration       *time.Duration  `json:"duration"`
+	Answers        []Answer        `json:"answers"`
+}
+
+type Answer struct {
+	QuizAnswerID string `json:"quiz_answer_id"`
+	Content      string `json:"content"`
+	IsCorrect    bool   `json:"is_correct"`
+}
+
 type GetCurrentQuestionRequest struct {
 	UserID string `json:"user_id"`
 	QuizID string `json:"quiz_id"`
 }
 
+// NOTE:
+// This assumes that all players are on the same question.
+// This is used to persist the current question during an ongoing quiz in case
+// the user refreshes the page.
 func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
 	sql := `
 	SELECT 
@@ -40,8 +61,8 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 			)
 		) AS question
 	FROM quiz_questions
-	JOIN users_in_quizzes ON users_in_quizzes.quiz_question_id = quiz_questions.quiz_question_id
-	WHERE users_in_quizzes.quiz_id = ($1)
+	JOIN players_in_quizzes ON players_in_quizzes.quiz_question_id = quiz_questions.quiz_question_id
+	WHERE players_in_quizzes.quiz_id = ($1)
 	`
 
 	row := r.querier.QueryRow(ctx, sql, quizID)
@@ -51,9 +72,6 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 	if err := row.Scan(&question); err != nil {
 		return Question{}, err
 	}
-
-	// NOTE: Just to make sure the answers don't get leaked xD
-	question.Answers = []Answer{}
 
 	return question, nil
 }

@@ -21,7 +21,7 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
+			Message:    "Invalid JSON request.",
 		}
 	}
 
@@ -29,11 +29,14 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
+			Message:    "Failed to created quiz.",
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Quiz created."}
+	return api.Response{
+		StatusCode: http.StatusCreated,
+		Message:    "Successfully created quiz.",
+	}
 }
 
 func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
@@ -99,14 +102,12 @@ func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response
 				Error:      err,
 				Message:    "Cookie not found",
 				StatusCode: http.StatusBadRequest,
-				Status:     api.Fail,
 			}
 		default:
 			return api.Response{
 				Error:      err,
 				Message:    "Server cookie error.",
 				StatusCode: http.StatusInternalServerError,
-				Status:     api.Error,
 			}
 		}
 	}
@@ -117,22 +118,25 @@ func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
 		}
 	}
 
-	// TODO: Get rid of this
+	// NOTE: Is this necessary?
 	data.UserID = cookie.Value
 
-	if err := s.repo.AddPlayer(ctx, data); err != nil {
+	user, err := s.repo.AddPlayer(ctx, data)
+	if err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Joined quiz."}
+	return api.Response{
+		StatusCode: http.StatusCreated,
+		Message:    user.Name + " has joined.",
+		Data:       user,
+	}
 }
 
 func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api.Response {
@@ -146,18 +150,20 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 			return api.Response{
 				Error:      err,
 				StatusCode: http.StatusNotFound,
-				Status:     api.Fail,
 			}
 		}
 
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusOK, Status: api.Success, Message: "Fetched current question.", Data: question}
+	return api.Response{
+		StatusCode: http.StatusOK,
+		Message:    "Fetched current question.",
+		Data:       question,
+	}
 }
 
 func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
@@ -170,11 +176,15 @@ func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Respons
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
+			Message:    "Failed to fetch players in quiz.",
 		}
 	}
 
-	return api.Response{Data: users, Status: api.Success, StatusCode: http.StatusOK, Message: "Fetched all users in quiz."}
+	return api.Response{
+		Data:       users,
+		StatusCode: http.StatusOK,
+		Message:    "Fetched all players in quiz.",
+	}
 }
 
 func (s *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) api.Response {
@@ -190,14 +200,12 @@ func (s *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) a
 				Error:      err,
 				Message:    "Cookie not found",
 				StatusCode: http.StatusBadRequest,
-				Status:     api.Fail,
 			}
 		default:
 			return api.Response{
 				Error:      err,
 				Message:    "Server cookie error.",
 				StatusCode: http.StatusInternalServerError,
-				Status:     api.Error,
 			}
 		}
 	}
@@ -208,7 +216,7 @@ func (s *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) a
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusBadRequest,
-			Status:     api.Fail,
+			Message:    "Invalid JSON request.",
 		}
 	}
 
@@ -218,11 +226,11 @@ func (s *Service) CreateSelectedAnswer(w http.ResponseWriter, r *http.Request) a
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
-			Status:     api.Error,
+			Message:    "Failed to create selected answer.",
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success}
+	return api.Response{StatusCode: http.StatusCreated, Message: "Submitted answer."}
 }
 
 func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {

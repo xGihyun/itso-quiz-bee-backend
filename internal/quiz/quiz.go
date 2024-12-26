@@ -1,16 +1,8 @@
 package quiz
 
 import (
+	"context"
 	"time"
-)
-
-type Status string
-
-const (
-	Open    Status = "open"
-	Started Status = "started"
-	Paused  Status = "paused"
-	Closed  Status = "closed"
 )
 
 type BasicInfo struct {
@@ -29,18 +21,26 @@ type Quiz struct {
 	Questions   []Question `json:"questions"`
 }
 
-type Question struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	OrderNumber    int16           `json:"order_number"`
-	Duration       *time.Duration  `json:"duration"`
-	Answers        []Answer        `json:"answers"`
-}
+func (r *repository) UpdateBasicInfo(ctx context.Context, data BasicInfo) error {
+	sql := `
+    UPDATE quizzes 
+    SET
+        name = COALESCE($1, name),
+        description = COALESCE($2, description),
+        status = COALESCE($3, status)
+    WHERE quiz_id = ($4)
+    `
 
-type Answer struct {
-	QuizAnswerID string `json:"quiz_answer_id"`
-	Content      string `json:"content"`
-	IsCorrect    bool   `json:"is_correct"`
+	if _, err := r.querier.Exec(
+		ctx,
+		sql,
+		data.Name,
+		data.Description,
+		data.Status,
+		data.QuizID,
+	); err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -20,13 +20,12 @@ type Repository interface {
 	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 
-	AddPlayer(ctx context.Context, data AddPlayerRequest) error
+	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error)
 	GetPlayers(ctx context.Context, quizID string) ([]user.GetUserResponse, error)
 
-	LiveUpdateStatus(ctx context.Context, data LiveUpdateStatusRequest) (Question, error)
-	LiveUpdateQuestion(ctx context.Context, data LiveUpdateQuestionRequest) error
-	LiveSubmitAnswer(ctx context.Context, data LiveSubmitAnswerRequest) error
-	LiveAddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error)
+	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
+	Start(ctx context.Context, quizID string) (Question, error)
+	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestion) error
 }
 
 type repository struct {

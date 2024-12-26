@@ -56,7 +56,7 @@ func main() {
 		auth:  *auth.NewService(pool),
 		user:  *user.NewService(user.NewRepository(pool)),
 		quiz:  *quiz.NewService(quiz.NewRepository(pool)),
-		ws:    *ws.NewService(*ws.NewDatabaseRepository(pool), wsPool),
+		ws:    *ws.NewService(pool, wsPool),
 	}
 
 	router := http.NewServeMux()
@@ -80,11 +80,6 @@ func main() {
 
     // TODO: This endpoint is weird, there is room for improvement
 	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
-
-    // NOTE: No need for API endpoints since this would run via WebSocket
-	// router.Handle("POST /api/quizzes/{quiz_id}/join", api.HTTPHandler(env.quiz.AddPlayer))
-	// router.Handle("POST /api/quizzes/{quiz_id}/selected-answers", api.HTTPHandler(env.quiz.CreateSelectedAnswer))
-	// router.Handle("POST /api/quizzes/{quiz_id}/written-answers", api.HTTPHandler(env.quiz.CreateWrittenAnswer))
 
 	host, ok := os.LookupEnv("HOST")
 	if !ok {

@@ -6,12 +6,35 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
-type LiveUpdateStatusRequest struct {
+type Status string
+
+const (
+	Open    Status = "open"
+	Started Status = "started"
+	Paused  Status = "paused"
+	Closed  Status = "closed"
+)
+
+type UpdateStatusRequest struct {
 	QuizID string `json:"quiz_id"`
 	Status Status `json:"status"`
 }
 
-func (r *repository) LiveUpdateStatus(ctx context.Context, data LiveUpdateStatusRequest) (Question, error) {
+func (r *repository) UpdateStatus(ctx context.Context, data UpdateStatusRequest) error {
+	sql := `
+        UPDATE quizzes 
+        SET status = ($1)
+        WHERE quiz_id = ($2)
+        `
+
+	if _, err := r.querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *repository) Start(ctx context.Context, quizID string) (Question, error) {
 	tx, err := r.querier.Begin(ctx)
 	if err != nil {
 		return Question{}, err
@@ -22,16 +45,12 @@ func (r *repository) LiveUpdateStatus(ctx context.Context, data LiveUpdateStatus
 	err = database.Transaction(ctx, tx, func() error {
 		sql := `
         UPDATE quizzes 
-        SET status = ($1)
-        WHERE quiz_id = ($2)
+        SET status = 'start'
+        WHERE quiz_id = ($1)
         `
 
-		if _, err := tx.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		if _, err := tx.Exec(ctx, sql, quizID); err != nil {
 			return err
-		}
-
-		if data.Status != Started {
-			return nil
 		}
 
 		sql = `
@@ -59,7 +78,7 @@ func (r *repository) LiveUpdateStatus(ctx context.Context, data LiveUpdateStatus
         LIMIT 1
         `
 
-		row := r.querier.QueryRow(ctx, sql, data.QuizID)
+		row := r.querier.QueryRow(ctx, sql, quizID)
 		if err := row.Scan(
 			&question.QuizQuestionID,
 			&question.Content,
@@ -88,40 +107,4 @@ func (r *repository) LiveUpdateStatus(ctx context.Context, data LiveUpdateStatus
 	}
 
 	return question, nil
-}
-
-type LiveUpdateQuestionRequest struct {
-	Question
-	QuizID string `json:"quiz_id"`
-}
-
-func (r *repository) LiveUpdateQuestion(ctx context.Context, data LiveUpdateQuestionRequest) error {
-	sql := `
-	UPDATE players_in_quizzes
-	SET quiz_question_id = ($1)
-	WHERE quiz_id = ($2)
-	`
-
-	if _, err := r.querier.Exec(ctx, sql, data.QuizQuestionID, data.QuizID); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type LiveSubmitAnswerRequest struct {
-	CreateWrittenAnswerRequest
-}
-
-func (r *repository) LiveSubmitAnswer(ctx context.Context, data LiveSubmitAnswerRequest) error {
-	sql := `
-	INSERT INTO player_written_answers (content, quiz_question_id, user_id)
-	VALUES ($1, $2, $3)
-    `
-
-	if _, err := r.querier.Exec(ctx, sql, data.Content, data.QuizQuestionID, data.UserID); err != nil {
-		return err
-	}
-
-	return nil
 }
