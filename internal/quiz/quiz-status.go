@@ -96,7 +96,7 @@ func (r *repository) Start(ctx context.Context, quizID string) (Question, error)
         WHERE quiz_id = ($2)
         `
 
-		if _, err := tx.Exec(ctx, sql, question.QuizQuestionID, data.QuizID); err != nil {
+		if _, err := tx.Exec(ctx, sql, question.QuizQuestionID, quizID); err != nil {
 			return err
 		}
 

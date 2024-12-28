@@ -18,14 +18,14 @@ type LoginRequest struct {
 
 func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	// TODO: Save session IDs on the server side using a more random and secure value.
-	if _, err := r.Cookie("session"); err != http.ErrNoCookie {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusConflict,
-			Message:    "User session already exists.",
-		}
-	}
-
+	// if _, err := r.Cookie("session"); err != http.ErrNoCookie {
+	// 	return api.Response{
+	// 		Error:      err,
+	// 		StatusCode: http.StatusConflict,
+	// 		Message:    "User session already exists.",
+	// 	}
+	// }
+	
 	ctx := context.Background()
 
 	var data LoginRequest
@@ -67,16 +67,16 @@ func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 
 	// TODO: Change `Value` to a more secure value
-	cookie := http.Cookie{
-		Name:     "session",
-		Value:    user.UserID,
-		Path:     "/",
-		SameSite: http.SameSiteNoneMode,
-		Secure:   false,
-		HttpOnly: true,
-		// Domain:   "http://192.168.1.2:3001",
-	}
-	http.SetCookie(w, &cookie)
+	// cookie := http.Cookie{
+	// 	Name:     "session",
+	// 	Value:    user.UserID,
+	// 	Path:     "/",
+	// 	SameSite: http.SameSiteNoneMode,
+	// 	Secure:   true,
+	// 	HttpOnly: true,
+	// 	// Domain:   "http://192.168.1.2:3001",
+	// }
+	// http.SetCookie(w, &cookie)
 
 	return api.Response{
 		StatusCode: http.StatusOK,

@@ -16,7 +16,7 @@ type Repository interface {
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 
-	GetWrittenAnswer(ctx context.Context, quizID string, userID string) (GetWrittenAnswerResponse, error)
+	GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error)
 	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 

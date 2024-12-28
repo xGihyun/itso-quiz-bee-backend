@@ -29,7 +29,8 @@ func (r *repository) Create(ctx context.Context, data Quiz) error {
 			return err
 		}
 
-		for _, question := range data.Questions {
+		for i, question := range data.Questions {
+			question.OrderNumber = int16(i + 1)
 			if err := createQuestion(tx, ctx, question, data.QuizID); err != nil {
 				return err
 			}

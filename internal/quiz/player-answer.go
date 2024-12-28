@@ -23,13 +23,18 @@ func (r *repository) CreateWrittenAnswer(ctx context.Context, data CreateWritten
 	return nil
 }
 
+type GetWrittenAnswerRequest struct {
+	QuizID string `json:"quiz_id"`
+	UserID string `json:"user_id"`
+}
+
 type GetWrittenAnswerResponse struct {
 	PlayerWrittenAnswerID string `json:"player_written_answer_id"`
 	Content               string `json:"content"`
 }
 
-func (r *repository) GetWrittenAnswer(ctx context.Context, quizID string, userID string) (GetWrittenAnswerResponse, error) {
-	question, err := r.GetCurrentQuestion(ctx, quizID)
+func (r *repository) GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error) {
+	question, err := r.GetCurrentQuestion(ctx, data.QuizID)
 	if err != nil {
 		return GetWrittenAnswerResponse{}, err
 	}
@@ -40,7 +45,7 @@ func (r *repository) GetWrittenAnswer(ctx context.Context, quizID string, userID
 	WHERE user_id = ($1) AND quiz_question_id = ($2)
 	`
 
-	row := r.querier.QueryRow(ctx, sql, userID, question.QuizQuestionID)
+	row := r.querier.QueryRow(ctx, sql, data.UserID, question.QuizQuestionID)
 
 	var answer GetWrittenAnswerResponse
 

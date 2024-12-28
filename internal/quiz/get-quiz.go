@@ -62,7 +62,7 @@ func (r *repository) GetMany(ctx context.Context) ([]BasicInfo, error) {
 
 	rows, err := r.querier.Query(ctx, sql)
 	if err != nil {
-		return nil, err
+		return []BasicInfo{}, err
 	}
 
 	quizzes, err := pgx.CollectRows(rows, pgx.RowToStructByName[BasicInfo])
