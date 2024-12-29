@@ -2,7 +2,7 @@ package quiz
 
 import "context"
 
-type UpdatePlayersQuestion struct {
+type UpdatePlayersQuestionRequest struct {
 	Question
 	QuizID string `json:"quiz_id"`
 }

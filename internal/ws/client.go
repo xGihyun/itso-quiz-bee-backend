@@ -12,16 +12,21 @@ import (
 )
 
 type Request struct {
-	Event    Event           `json:"event"`
-	Data     json.RawMessage `json:"data"`
-	Response any             `json:"response"`
+	Event Event           `json:"event"`
+	Data  json.RawMessage `json:"data"`
+	// UserID string          `json:"user_id"` // User who sent the request
+}
+
+type Response struct {
+	Event Event `json:"event"`
+	Data  any   `json:"data"`
 }
 
 type Client struct {
-	Pool   *Pool
-	Conn   *websocket.Conn
-	ID     string
-	UserID string
+	Pool *Pool
+	Conn *websocket.Conn
+	ID   string
+	// UserID string
 
 	querier database.Querier
 }
@@ -44,11 +49,14 @@ func (c *Client) Read() {
 		}
 
 		var request Request
+		var response Response
 
 		if err := json.Unmarshal(data, &request); err != nil {
 			log.Error().Err(err).Send()
 			return
 		}
+
+		response.Event = request.Event
 
 		switch request.Event {
 		case QuizUpdateStatus:
@@ -64,6 +72,8 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
+
+			response.Data = data.Status
 
 			log.Info().Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
 			break
@@ -81,13 +91,13 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
-			request.Response = question
+			response.Data = question
 
 			log.Info().Msg("Quiz has started.")
 			break
 
 		case QuizUpdateQuestion:
-			var data quiz.UpdatePlayersQuestion
+			var data quiz.UpdatePlayersQuestionRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
@@ -98,9 +108,20 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
-			request.Response = data.Question
+			response.Data = data.Question
 
 			log.Info().Msg(fmt.Sprintf("Update to question #%d", data.OrderNumber))
+			break
+
+		case PlayerTypeAnswer:
+			var data quiz.CreateWrittenAnswerRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			response.Data = data
 			break
 
 		case PlayerSubmitAnswer:
@@ -115,6 +136,8 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
+
+			response.Data = data
 
 			log.Info().Msg("Submitted answer: " + data.Content)
 			break
@@ -133,12 +156,11 @@ func (c *Client) Read() {
 				return
 			}
 
-			request.Response = user
+			response.Data = user
 
 			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
 			break
 
-		case PlayerTypeAnswer:
 		case PlayerLeave:
 		case Heartbeat:
 			// Do nothing
@@ -150,6 +172,6 @@ func (c *Client) Read() {
 
 		log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
 
-		c.Pool.Broadcast <- request
+		c.Pool.Broadcast <- response
 	}
 }

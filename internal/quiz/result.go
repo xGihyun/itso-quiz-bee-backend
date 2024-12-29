@@ -17,11 +17,9 @@ type PlayerScore struct {
 }
 
 type PlayerAnswer struct {
-	PlayerAnswerID string  `json:"player_answer_id"`
-	QuizQuestionID string  `json:"quiz_question_id"`
-	QuizAnswerID   *string `json:"quiz_answer_id"`
-	Content        string  `json:"content"`
-	IsCorrect      bool    `json:"is_correct"`
+	Answer
+	PlayerAnswerID string `json:"player_answer_id"`
+	QuizQuestionID string `json:"quiz_question_id"`
 }
 
 func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, error) {

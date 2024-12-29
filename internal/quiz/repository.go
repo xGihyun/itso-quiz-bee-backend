@@ -25,7 +25,7 @@ type Repository interface {
 
 	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 	Start(ctx context.Context, quizID string) (Question, error)
-	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestion) error
+	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
 }
 
 type repository struct {
