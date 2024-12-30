@@ -45,7 +45,7 @@ func (r *repository) Start(ctx context.Context, quizID string) (Question, error)
 	err = database.Transaction(ctx, tx, func() error {
 		sql := `
         UPDATE quizzes 
-        SET status = 'start'
+        SET status = 'started'
         WHERE quiz_id = ($1)
         `
 
@@ -85,6 +85,7 @@ func (r *repository) Start(ctx context.Context, quizID string) (Question, error)
 			&question.Variant,
 			&question.Points,
 			&question.OrderNumber,
+			&question.Duration,
 			&question.Answers,
 		); err != nil {
 			return err

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 type Result struct {
@@ -12,8 +13,8 @@ type Result struct {
 }
 
 type PlayerScore struct {
+    user.GetUserResponse
 	Score  int16  `json:"score"`
-	UserID string `json:"user_id"`
 }
 
 type PlayerAnswer struct {
@@ -24,27 +25,7 @@ type PlayerAnswer struct {
 
 func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, error) {
 	sql := `
-	WITH player_selected_scores AS (
-		SELECT 
-			SUM(
-				CASE
-					WHEN quiz_answers.is_correct IS TRUE 
-					THEN quiz_questions.points
-					ELSE 0
-				END 
-			) AS score,
-			player_selected_answers.user_id
-		FROM player_selected_answers
-		JOIN quiz_answers 
-			ON quiz_answers.quiz_answer_id = player_selected_answers.quiz_answer_id
-		JOIN quiz_questions 
-			ON quiz_questions.quiz_question_id = quiz_answers.quiz_question_id
-		WHERE 
-			quiz_questions.quiz_id = ($1)
-		GROUP BY 
-			player_selected_answers.user_id
-	),
-	player_written_scores AS (
+	WITH player_written_scores AS (
 		SELECT 
 			SUM(
 				CASE
@@ -55,7 +36,7 @@ func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, e
 			) AS score,
 			player_written_answers.user_id
 		FROM player_written_answers
-		JOIN quiz_questions 
+		LEFT JOIN quiz_questions 
 			ON quiz_questions.quiz_question_id = player_written_answers.quiz_question_id
 		LEFT JOIN quiz_answers 
 			ON quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
@@ -65,14 +46,18 @@ func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, e
 			player_written_answers.user_id
 	)
 	SELECT 
-		user_id,
-		SUM(score) AS score
+		users.user_id,
+		users.created_at,
+		users.username,
+		users.role,
+		users.name,
+		COALESCE(SUM(player_score.score), 0) AS score
 	FROM (
-		SELECT user_id, score FROM player_selected_scores
-		UNION ALL
 		SELECT user_id, score FROM player_written_scores
-	) combined_scores
-	GROUP BY user_id;
+	) player_score
+	RIGHT JOIN players_in_quizzes ON players_in_quizzes.user_id = player_score.user_id
+	JOIN users ON users.user_id = players_in_quizzes.user_id
+	GROUP BY users.user_id;
 	`
 
 	rows, err := r.querier.Query(ctx, sql, quizID)
@@ -88,25 +73,7 @@ func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, e
 	var results []Result
 
 	sql = `
-	WITH player_selected_answers AS (
-		SELECT 
-			player_selected_answers.player_selected_answer_id AS player_answer_id,
-			quiz_answers.quiz_answer_id,
-			quiz_questions.quiz_question_id,
-			quiz_questions.order_number,
-			quiz_questions.points,
-			quiz_answers.content,
-			quiz_answers.is_correct
-		FROM player_selected_answers
-		JOIN quiz_answers 
-			ON quiz_answers.quiz_answer_id = player_selected_answers.quiz_answer_id
-		JOIN quiz_questions 
-			ON quiz_questions.quiz_question_id = quiz_answers.quiz_question_id
-		WHERE 
-			quiz_questions.quiz_id = ($1) 
-			AND player_selected_answers.user_id = ($2)
-	),
-	player_written_answers AS (
+	WITH player_written_answers AS (
 		SELECT
 			player_written_answers.player_written_answer_id AS player_answer_id,
 			quiz_answers.quiz_answer_id,
@@ -136,15 +103,6 @@ func (r *repository) GetResults(ctx context.Context, quizID string) ([]Result, e
 		is_correct,
 		quiz_question_id
 	FROM (
-		SELECT 
-			player_answer_id, 
-			quiz_answer_id, 
-			content, 
-			order_number, 
-			is_correct,
-			quiz_question_id
-		FROM player_selected_answers
-		UNION ALL
 		SELECT 
 			player_answer_id, 
 			quiz_answer_id, 

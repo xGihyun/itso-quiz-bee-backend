@@ -152,18 +152,20 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 			return api.Response{
 				Error:      err,
 				StatusCode: http.StatusNotFound,
+				Message:    "Quiz current question not found.",
 			}
 		}
 
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
+			Message:    "Failed to fetch quiz current question.",
 		}
 	}
 
 	return api.Response{
 		StatusCode: http.StatusOK,
-		Message:    "Fetched current question.",
+		Message:    "Fetched quiz current question.",
 		Data:       question,
 	}
 }

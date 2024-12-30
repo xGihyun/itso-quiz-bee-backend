@@ -7,7 +7,7 @@ type UpdatePlayersQuestionRequest struct {
 	QuizID string `json:"quiz_id"`
 }
 
-func (r *repository) UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestion) error {
+func (r *repository) UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error {
 	sql := `
 	UPDATE players_in_quizzes
 	SET quiz_question_id = ($1)

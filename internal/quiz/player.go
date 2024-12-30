@@ -8,6 +8,8 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
+// TODO: Probably don't need this since I'm using `GetResults` to get all players 
+// on the client
 func (r *repository) GetPlayers(ctx context.Context, quizID string) ([]user.GetUserResponse, error) {
 	sql := `
 	SELECT 
