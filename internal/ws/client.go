@@ -137,7 +137,18 @@ func (c *Client) Read() {
 				return
 			}
 
-			response.Data = data
+			resultRequest := quiz.GetResultRequest{
+				UserID: data.UserID,
+				QuizID: data.QuizID,
+			}
+
+			result, err := quizRepo.GetResult(ctx, resultRequest)
+			if err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			response.Data = result
 
 			log.Info().Msg("Submitted answer: " + data.Content)
 			break

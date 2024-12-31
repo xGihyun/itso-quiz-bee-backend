@@ -4,16 +4,25 @@ import (
 	"context"
 )
 
+type PlayerAnswer struct {
+	PlayerAnswerID string `json:"player_answer_id"`
+	Content        string `json:"content"`
+	IsCorrect      bool   `json:"is_correct"`
+	QuizQuestionID string `json:"quiz_question_id"`
+}
+
 type CreateWrittenAnswerRequest struct {
 	Content        string `json:"content"`
 	QuizQuestionID string `json:"quiz_question_id"`
 	UserID         string `json:"user_id"`
+	QuizID         string `json:"quiz_id"`
 }
 
 func (r *repository) CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error {
 	sql := `
 	INSERT INTO player_written_answers (content, quiz_question_id, user_id)
 	VALUES ($1, $2, $3)
+    RETURNING player_written_answer_id
     `
 
 	if _, err := r.querier.Exec(ctx, sql, data.Content, data.QuizQuestionID, data.UserID); err != nil {

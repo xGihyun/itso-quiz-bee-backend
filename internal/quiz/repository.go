@@ -13,6 +13,7 @@ type Repository interface {
 	Create(ctx context.Context, data Quiz) error
 	UpdateBasicInfo(ctx context.Context, data BasicInfo) error
 
+	GetResult(ctx context.Context, data GetResultRequest) (Result, error)
 	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 
