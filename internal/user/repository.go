@@ -47,7 +47,8 @@ func (r *repository) GetByID(ctx context.Context, userID string) (GetUserRespons
         created_at,
         username,
         role,
-        name
+        name,
+        avatar_url
     FROM users WHERE user_id = ($1)
     `
 
@@ -55,7 +56,14 @@ func (r *repository) GetByID(ctx context.Context, userID string) (GetUserRespons
 
 	var user GetUserResponse
 
-	if err := row.Scan(&user.UserID, &user.CreatedAt, &user.Username, &user.Role, &user.Name); err != nil {
+	if err := row.Scan(
+		&user.UserID,
+		&user.CreatedAt,
+		&user.Username,
+		&user.Role,
+		&user.Name,
+		&user.AvatarURL,
+	); err != nil {
 		return GetUserResponse{}, err
 	}
 
@@ -69,7 +77,8 @@ func (r *repository) GetAll(ctx context.Context) ([]GetUserResponse, error) {
         created_at,
         username,
         role,
-        name
+        name,
+        avatar_url
 	FROM users
 	`
 

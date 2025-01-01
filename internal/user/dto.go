@@ -15,4 +15,5 @@ type GetUserResponse struct {
 	Username  string    `json:"username"`
 	Role      Role      `json:"role"`
 	Name      string    `json:"name"`
+	AvatarURL *string    `json:"avatar_url"`
 }

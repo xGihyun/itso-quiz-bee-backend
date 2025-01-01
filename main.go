@@ -78,7 +78,9 @@ func main() {
 	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
 	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
 
-    // TODO: This endpoint is weird, there is room for improvement
+    // TODO: 
+    // This endpoint is weird, there is room for improvement
+    // Hide the `answers[]` from players
 	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
 
 	host, ok := os.LookupEnv("HOST")
