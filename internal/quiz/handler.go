@@ -88,25 +88,25 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 }
 
-func (s *Service) GetResults(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	quizID := r.PathValue("quiz_id")
 
-	results, err := s.repo.GetResults(ctx, quizID)
+	results, err := s.repo.GetPlayers(ctx, quizID)
 	if err != nil {
 		return api.Response{
 			Error:      err,
 			StatusCode: http.StatusInternalServerError,
 			Data:       results,
-			Message:    "Failed to fetch quiz results.",
+			Message:    "Failed to fetch quiz players.",
 		}
 	}
 
 	return api.Response{
 		StatusCode: http.StatusOK,
 		Data:       results,
-		Message:    "Fetched quiz results.",
+		Message:    "Fetched quiz players.",
 	}
 }
 
@@ -167,27 +167,6 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 		StatusCode: http.StatusOK,
 		Message:    "Fetched quiz current question.",
 		Data:       question,
-	}
-}
-
-func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
-
-	quizID := r.PathValue("quiz_id")
-
-	users, err := s.repo.GetPlayers(ctx, quizID)
-	if err != nil {
-		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to fetch players in quiz.",
-		}
-	}
-
-	return api.Response{
-		Data:       users,
-		StatusCode: http.StatusOK,
-		Message:    "Fetched all players in quiz.",
 	}
 }
 

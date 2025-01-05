@@ -13,8 +13,6 @@ type Repository interface {
 	Create(ctx context.Context, data Quiz) error
 	UpdateBasicInfo(ctx context.Context, data BasicInfo) error
 
-	GetResult(ctx context.Context, data GetResultRequest) (Result, error)
-	GetResults(ctx context.Context, quizID string) ([]Result, error)
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 
 	GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error)
@@ -22,7 +20,8 @@ type Repository interface {
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 
 	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error)
-	GetPlayers(ctx context.Context, quizID string) ([]user.GetUserResponse, error)
+	GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error)
+	GetPlayers(ctx context.Context, quizID string) ([]Player, error)
 
 	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 	Start(ctx context.Context, quizID string) (Question, error)

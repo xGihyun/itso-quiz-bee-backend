@@ -75,7 +75,6 @@ func main() {
 	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetMany))
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
-	router.Handle("GET /api/quizzes/{quiz_id}/results", api.HTTPHandler(env.quiz.GetResults))
 	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
 
     // TODO: 

@@ -137,18 +137,18 @@ func (c *Client) Read() {
 				return
 			}
 
-			resultRequest := quiz.GetResultRequest{
+			playerRequest := quiz.GetPlayerRequest{
 				UserID: data.UserID,
 				QuizID: data.QuizID,
 			}
 
-			result, err := quizRepo.GetResult(ctx, resultRequest)
+			player, err := quizRepo.GetPlayer(ctx, playerRequest)
 			if err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			response.Data = result
+			response.Data = player
 
 			log.Info().Msg("Submitted answer: " + data.Content)
 			break
