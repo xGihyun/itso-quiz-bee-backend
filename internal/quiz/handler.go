@@ -88,6 +88,30 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 }
 
+func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response {
+	ctx := context.Background()
+
+	quizID := r.PathValue("quiz_id")
+	playerID := r.PathValue("player_id")
+
+	request := GetPlayerRequest{UserID: playerID, QuizID: quizID}
+
+	player, err := s.repo.GetPlayer(ctx, request)
+	if err != nil {
+		return api.Response{
+			Error:      err,
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Failed to fetch quiz player.",
+		}
+	}
+
+	return api.Response{
+		StatusCode: http.StatusOK,
+		Data:       player,
+		Message:    "Fetched quiz player.",
+	}
+}
+
 func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 

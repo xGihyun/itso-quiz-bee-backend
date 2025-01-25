@@ -76,11 +76,11 @@ func main() {
 	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
 	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
+	router.Handle("GET /api/quizzes/{quiz_id}/players/{player_id}", api.HTTPHandler(env.quiz.GetPlayer))
 
     // TODO: 
-    // This endpoint is weird, there is room for improvement
     // Hide the `answers[]` from players
-	router.Handle("GET /api/quizzes/{quiz_id}/questions/current", api.HTTPHandler(env.quiz.GetCurrentQuestion))
+	router.Handle("GET /api/quizzes/{quiz_id}/current-question", api.HTTPHandler(env.quiz.GetCurrentQuestion))
 
 	host, ok := os.LookupEnv("HOST")
 	if !ok {
