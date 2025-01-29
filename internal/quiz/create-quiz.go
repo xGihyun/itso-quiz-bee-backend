@@ -2,7 +2,6 @@ package quiz
 
 import (
 	"context"
-	"math"
 
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
@@ -77,13 +76,6 @@ func createQuestion(querier database.Querier, ctx context.Context, question Ques
     RETURNING quiz_question_id
     `
 
-	// Convert duration (nanoseconds) to seconds for Postgres
-	var seconds *int
-	if question.Duration != nil {
-		s := int(math.Round(question.Duration.Seconds() * 1e9))
-		seconds = &s
-	}
-
 	row := querier.QueryRow(
 		ctx,
 		sql,
@@ -92,7 +84,7 @@ func createQuestion(querier database.Querier, ctx context.Context, question Ques
 		question.Variant,
 		question.Points,
 		question.OrderNumber,
-		seconds,
+		question.Duration,
 		quizID,
 	)
 

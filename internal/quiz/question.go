@@ -2,7 +2,6 @@ package quiz
 
 import (
 	"context"
-	"time"
 )
 
 type QuestionVariant string
@@ -19,7 +18,7 @@ type Question struct {
 	Variant        QuestionVariant `json:"variant"`
 	Points         int16           `json:"points"`
 	OrderNumber    int16           `json:"order_number"`
-	Duration       *time.Duration  `json:"duration"`
+	Duration       *int            `json:"duration"`
 	Answers        []Answer        `json:"answers"`
 }
 

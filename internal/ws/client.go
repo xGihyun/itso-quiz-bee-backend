@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
@@ -14,7 +15,6 @@ import (
 type Request struct {
 	Event Event           `json:"event"`
 	Data  json.RawMessage `json:"data"`
-	// UserID string          `json:"user_id"` // User who sent the request
 }
 
 type Response struct {
@@ -26,9 +26,9 @@ type Client struct {
 	Pool *Pool
 	Conn *websocket.Conn
 	ID   string
-	// UserID string
 
-	querier database.Querier
+	querier     database.Querier
+	cancelTimer context.CancelFunc
 }
 
 func (c *Client) Read() {
@@ -59,6 +59,7 @@ func (c *Client) Read() {
 		response.Event = request.Event
 
 		switch request.Event {
+		// TODO: Merge this with `QuizStart`
 		case QuizUpdateStatus:
 			var data quiz.UpdateStatusRequest
 
@@ -108,6 +109,16 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
+
+			if c.cancelTimer != nil {
+				c.cancelTimer()
+			}
+
+			timerCtx, cancel := context.WithCancel(context.Background())
+			c.cancelTimer = cancel
+
+			go c.startQuestionTimer(timerCtx, data.Question)
+
 			response.Data = data.Question
 
 			log.Info().Msg(fmt.Sprintf("Update to question #%d", data.OrderNumber))
@@ -181,8 +192,53 @@ func (c *Client) Read() {
 			log.Warn().Msg(fmt.Sprintf("Unknown request event: %s", request.Event))
 		}
 
-		log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
+		// log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
 
 		c.Pool.Broadcast <- response
+	}
+}
+
+type QuestionTimer struct {
+	quiz.Question
+	RemainingTime int `json:"remaining_time"`
+}
+
+func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question) {
+	duration := *question.Duration
+
+	if duration <= 0 {
+		log.Warn().Msg("Invalid timer duration.")
+		return
+	}
+
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			duration -= 1
+
+			data := QuestionTimer{
+				Question:      question,
+				RemainingTime: duration,
+			}
+
+			response := Response{
+				Event: QuizTimerPass,
+				Data:  data,
+			}
+
+			c.Pool.Broadcast <- response
+
+			if duration <= 0 {
+				log.Info().Msg("Time is up!")
+				return
+			}
+
+		case <-ctx.Done():
+			log.Info().Msg("Timer cancelled.")
+			return
+		}
 	}
 }
