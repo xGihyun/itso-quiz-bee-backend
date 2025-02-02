@@ -26,11 +26,6 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 }
 
 func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
-	// session, err := r.Cookie("session")
-	// if err != nil {
-	// 	return
-	// }
-
 	conn, err := upgrade(w, r)
 	if err != nil {
 		log.Error().Err(err).Send()
@@ -39,11 +34,12 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 
 	client := &Client{
-		Conn:    conn,
-		Pool:    s.pool,
-		ID:      uuid.NewString(),
+		Conn: conn,
+		Pool: s.pool,
+		ID:   uuid.NewString(),
 		// UserID:  session.Value,
-		querier: s.querier,
+		querier:     s.querier,
+		isTimerAuto: false,
 	}
 
 	s.pool.Register <- client

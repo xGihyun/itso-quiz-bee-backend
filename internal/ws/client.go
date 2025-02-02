@@ -29,6 +29,7 @@ type Client struct {
 
 	querier     database.Querier
 	cancelTimer context.CancelFunc
+	isTimerAuto bool
 }
 
 func (c *Client) Read() {
@@ -110,6 +111,8 @@ func (c *Client) Read() {
 				return
 			}
 
+            fmt.Println("Cancel Timer: ", c.cancelTimer)
+
 			if c.cancelTimer != nil {
 				c.cancelTimer()
 			}
@@ -183,6 +186,19 @@ func (c *Client) Read() {
 			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
 			break
 
+		case TimerUpdateMode:
+			var isAuto bool
+
+			if err := json.Unmarshal(request.Data, &isAuto); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			c.isTimerAuto = isAuto
+
+			log.Info().Msg(fmt.Sprintf("Is timer automatic: %t", isAuto))
+			break
+
 		case PlayerLeave:
 		case Heartbeat:
 			// Do nothing
@@ -192,19 +208,12 @@ func (c *Client) Read() {
 			log.Warn().Msg(fmt.Sprintf("Unknown request event: %s", request.Event))
 		}
 
-		// log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
-
 		c.Pool.Broadcast <- response
 	}
 }
 
-type QuestionTimer struct {
-	quiz.Question
-	RemainingTime int `json:"remaining_time"`
-}
-
 func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question) {
-	duration := *question.Duration
+	duration := 10
 
 	if duration <= 0 {
 		log.Warn().Msg("Invalid timer duration.")
@@ -219,19 +228,26 @@ func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question)
 		case <-ticker.C:
 			duration -= 1
 
-			data := QuestionTimer{
+			data := quiz.QuestionTimer{
 				Question:      question,
 				RemainingTime: duration,
+				IsAuto:        c.isTimerAuto,
 			}
 
 			response := Response{
-				Event: QuizTimerPass,
+				Event: TimerPass,
 				Data:  data,
 			}
 
 			c.Pool.Broadcast <- response
 
 			if duration <= 0 {
+				response := Response{
+					Event: TimerDone,
+				}
+
+				c.Pool.Broadcast <- response
+
 				log.Info().Msg("Time is up!")
 				return
 			}
