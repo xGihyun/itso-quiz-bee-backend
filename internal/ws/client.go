@@ -3,10 +3,12 @@ package ws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5"
 	"github.com/rs/zerolog/log"
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
@@ -93,6 +95,7 @@ func (c *Client) Read() {
 				log.Error().Err(err).Send()
 				return
 			}
+
 			response.Data = question
 
 			log.Info().Msg("Quiz has started.")
@@ -106,22 +109,7 @@ func (c *Client) Read() {
 				return
 			}
 
-			if err := quizRepo.UpdatePlayersQuestion(ctx, data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-            fmt.Println("Cancel Timer: ", c.cancelTimer)
-
-			if c.cancelTimer != nil {
-				c.cancelTimer()
-			}
-
-			timerCtx, cancel := context.WithCancel(context.Background())
-			c.cancelTimer = cancel
-
-			go c.startQuestionTimer(timerCtx, data.Question)
-
+			c.updateQuestion(ctx, data)
 			response.Data = data.Question
 
 			log.Info().Msg(fmt.Sprintf("Update to question #%d", data.OrderNumber))
@@ -212,25 +200,27 @@ func (c *Client) Read() {
 	}
 }
 
-func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question) {
-	duration := 10
+func (c *Client) startQuestionTimer(ctx context.Context, question quiz.UpdatePlayersQuestionRequest) {
+    remainingTime := 5 // TODO: Change to the question's duration
 
-	if duration <= 0 {
-		log.Warn().Msg("Invalid timer duration.")
+	if remainingTime <= 0 {
+		log.Warn().Msg("Question duration must be greater than zero (0).")
 		return
 	}
 
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
+	quizRepo := quiz.NewRepository(c.querier)
+
 	for {
 		select {
 		case <-ticker.C:
-			duration -= 1
+			remainingTime -= 1
 
 			data := quiz.QuestionTimer{
-				Question:      question,
-				RemainingTime: duration,
+				Question:      question.Question,
+				RemainingTime: remainingTime,
 				IsAuto:        c.isTimerAuto,
 			}
 
@@ -241,9 +231,27 @@ func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question)
 
 			c.Pool.Broadcast <- response
 
-			if duration <= 0 {
+			if remainingTime <= 0 {
+				nextQuestion, err := quizRepo.GetNextQuestion(ctx, question)
+
+				if err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
+						log.Info().Msg("No more questions.")
+					}
+
+					return
+				}
+
+				data := quiz.UpdatePlayersQuestionRequest{
+					Question: nextQuestion,
+					QuizID:   question.QuizID,
+				}
+
+				c.updateQuestion(ctx, data)
+
 				response := Response{
-					Event: TimerDone,
+					Event: QuizUpdateQuestion,
+					Data:  nextQuestion,
 				}
 
 				c.Pool.Broadcast <- response
@@ -251,10 +259,29 @@ func (c *Client) startQuestionTimer(ctx context.Context, question quiz.Question)
 				log.Info().Msg("Time is up!")
 				return
 			}
+			break
 
 		case <-ctx.Done():
-			log.Info().Msg("Timer cancelled.")
+			log.Info().Msg("Timer cancelled for previous question.")
 			return
 		}
 	}
+}
+
+func (c *Client) updateQuestion(ctx context.Context, data quiz.UpdatePlayersQuestionRequest) {
+	quizRepo := quiz.NewRepository(c.querier)
+
+	if err := quizRepo.UpdatePlayersQuestion(ctx, data); err != nil {
+		log.Error().Err(err).Send()
+		return 
+	}
+
+	if c.cancelTimer != nil {
+		c.cancelTimer()
+	}
+
+	timerCtx, cancel := context.WithCancel(context.Background())
+	c.cancelTimer = cancel
+
+	go c.startQuestionTimer(timerCtx, data)
 }
