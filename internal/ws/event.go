@@ -14,8 +14,8 @@ const (
 	QuizDisableAnswering Event = "quiz-disable-answering"
 
 	TimerPass       Event = "timer-pass"
-	TimerUpdateMode Event = "timer-update-mode"
 	TimerDone       Event = "timer-done"
+	TimerUpdateMode Event = "timer-update-mode"
 
 	PlayerJoin         Event = "player-join"
 	PlayerLeave        Event = "player-leave"

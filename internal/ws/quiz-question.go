@@ -25,6 +25,9 @@ func (c *Client) updateQuestion(ctx context.Context, question quiz.UpdatePlayers
 	timerCtx, cancel := context.WithCancel(context.Background())
 	c.timer.cancel = cancel
 
+    c.timer.isPaused = false
+    c.question = question
+
 	go c.startQuestionTimer(timerCtx, question)
 }
 

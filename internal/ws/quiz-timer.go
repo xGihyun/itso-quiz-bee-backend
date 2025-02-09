@@ -8,24 +8,33 @@ import (
 )
 
 type Timer struct {
-	isAuto        bool
-	ticker        *time.Ticker
-	cancel        context.CancelFunc
-	remainingTime int
+	isAuto   bool
+	isPaused bool
+	ticker   *time.Ticker
+	cancel   context.CancelFunc
+	duration int
 }
 
-func (t *Timer) Stop() {
-	t.cancel()
-	t.ticker.Stop()
-}
+func (c *Client) resumeQuestionTimer() {
+	if c.timer.cancel != nil {
+		c.timer.cancel()
+	}
 
-func (t *Timer) Resume() {
-    t.ticker.Stop()
-	t.ticker = time.NewTicker(1 * time.Second)
+	timerCtx, cancel := context.WithCancel(context.Background())
+	c.timer.cancel = cancel
+
+	go func() {
+		// TODO: Make sure the current question persist properly since it resets
+		// when players refresh
+		c.startQuestionTimer(timerCtx, c.question)
+		c.timer.isPaused = false
+	}()
 }
 
 func (c *Client) startQuestionTimer(ctx context.Context, question quiz.UpdatePlayersQuestionRequest) {
-	c.timer.remainingTime = 5 // TODO: Change to the question's duration
+	if !c.timer.isPaused {
+		c.timer.duration = *question.Duration
+	}
 
 	c.timer.ticker = time.NewTicker(1 * time.Second)
 	defer c.timer.ticker.Stop()
@@ -33,11 +42,13 @@ func (c *Client) startQuestionTimer(ctx context.Context, question quiz.UpdatePla
 	for {
 		select {
 		case <-c.timer.ticker.C:
-			c.timer.remainingTime -= 1
+			c.timer.duration -= 1
 
+            // TODO:
+            // We only need the duration
 			data := quiz.QuestionTimer{
 				Question:      question.Question,
-				RemainingTime: c.timer.remainingTime,
+				RemainingTime: c.timer.duration,
 				IsAuto:        c.timer.isAuto,
 			}
 
@@ -48,7 +59,7 @@ func (c *Client) startQuestionTimer(ctx context.Context, question quiz.UpdatePla
 
 			c.Pool.Broadcast <- response
 
-			if c.timer.remainingTime <= 0 {
+			if c.timer.duration <= 0 {
 				if c.timer.isAuto {
 					c.handleNextQuestion(ctx, question)
 				}

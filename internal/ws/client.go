@@ -28,9 +28,7 @@ type Client struct {
 
 	querier database.Querier
 	timer   Timer
-	// cancelTimer context.CancelFunc
-	// isTimerAuto bool
-	// ticker      *time.Ticker
+    question quiz.UpdatePlayersQuestionRequest
 }
 
 func (c *Client) Read(ctx context.Context) {
@@ -73,11 +71,12 @@ func (c *Client) Read(ctx context.Context) {
 				return
 			}
 
+            // TODO: Create separate event for this.
 			if data.Status == quiz.Paused {
-				c.timer.Stop()
+                c.timer.isPaused = true
+				c.timer.ticker.Stop()
 			} else {
-                c.timer.Resume()
-                fmt.Println("RESUMED")
+                c.resumeQuestionTimer()
             }
 
 			response.Data = data.Status
