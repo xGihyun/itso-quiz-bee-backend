@@ -26,9 +26,8 @@ type Client struct {
 	Conn *websocket.Conn
 	ID   string
 
-	querier database.Querier
-	timer   Timer
-    question quiz.UpdatePlayersQuestionRequest
+	querier  database.Querier
+	timer    Timer
 }
 
 func (c *Client) Read(ctx context.Context) {
@@ -71,13 +70,12 @@ func (c *Client) Read(ctx context.Context) {
 				return
 			}
 
-            // TODO: Create separate event for this.
+			// TODO: Could create a separate event for this.
 			if data.Status == quiz.Paused {
-                c.timer.isPaused = true
-				c.timer.ticker.Stop()
+				c.timer.Pause()
 			} else {
-                c.resumeQuestionTimer()
-            }
+				c.resumeQuestionTimer(ctx, data.QuizID)
+			}
 
 			response.Data = data.Status
 

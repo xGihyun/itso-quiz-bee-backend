@@ -18,23 +18,30 @@ func (c *Client) updateQuestion(ctx context.Context, question quiz.UpdatePlayers
 		return
 	}
 
-	if c.timer.cancel != nil {
-		c.timer.cancel()
+	if question.Duration == nil {
+		log.Warn().Msg("Question has no duration.")
+		return
 	}
 
-	timerCtx, cancel := context.WithCancel(context.Background())
-	c.timer.cancel = cancel
+	if c.timer.ticker != nil {
+		c.timer.Stop()
+	}
 
-    c.timer.isPaused = false
-    c.question = question
-
-	go c.startQuestionTimer(timerCtx, question)
+	go func() {
+		c.timer.Start(*question.Duration)
+		c.handleQuestionTimer(question.QuizID, question.Question)
+	}()
 }
 
-func (c *Client) handleNextQuestion(ctx context.Context, question quiz.UpdatePlayersQuestionRequest) {
+func (c *Client) handleNextQuestion(ctx context.Context, quizID string, orderNumber int16) {
 	quizRepo := quiz.NewRepository(c.querier)
 
-	nextQuestion, err := quizRepo.GetNextQuestion(ctx, question)
+	request := quiz.GetNextQuestionRequest{
+		QuizID:      quizID,
+		OrderNumber: orderNumber,
+	}
+
+	question, err := quizRepo.GetNextQuestion(ctx, request)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Info().Msg("No more questions.")
@@ -43,15 +50,15 @@ func (c *Client) handleNextQuestion(ctx context.Context, question quiz.UpdatePla
 	}
 
 	data := quiz.UpdatePlayersQuestionRequest{
-		Question: nextQuestion,
-		QuizID:   question.QuizID,
+		Question: question,
+		QuizID:   quizID,
 	}
 
 	c.updateQuestion(ctx, data)
 
 	response := Response{
 		Event: QuizUpdateQuestion,
-		Data:  nextQuestion,
+		Data:  question,
 	}
 
 	c.Pool.Broadcast <- response

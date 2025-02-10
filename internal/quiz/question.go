@@ -28,11 +28,6 @@ type Answer struct {
 	IsCorrect    bool   `json:"is_correct"`
 }
 
-type GetCurrentQuestionRequest struct {
-	UserID string `json:"user_id"`
-	QuizID string `json:"quiz_id"`
-}
-
 // NOTE:
 // This assumes that all players are on the same question.
 // This is used to persist the current question during an ongoing quiz in case
@@ -75,7 +70,12 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 	return question, nil
 }
 
-func (r *repository) GetNextQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) (Question, error) {
+type GetNextQuestionRequest struct {
+	QuizID      string `json:"quiz_id"`
+	OrderNumber int16  `json:"order_number"`
+}
+
+func (r *repository) GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error) {
 	sql := `
 	SELECT 
 		jsonb_build_object(
@@ -101,13 +101,13 @@ func (r *repository) GetNextQuestion(ctx context.Context, data UpdatePlayersQues
 	WHERE quiz_id = ($1) AND order_number = ($2)
 	`
 
-	row := r.querier.QueryRow(ctx, sql, data.QuizID, data.OrderNumber + 1)
+	row := r.querier.QueryRow(ctx, sql, data.QuizID, data.OrderNumber+1)
 
-	var nextQuestion Question
+	var question Question
 
-	if err := row.Scan(&nextQuestion); err != nil {
+	if err := row.Scan(&question); err != nil {
 		return Question{}, err
 	}
 
-	return nextQuestion, nil
+	return question, nil
 }

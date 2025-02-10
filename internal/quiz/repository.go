@@ -14,7 +14,7 @@ type Repository interface {
 	UpdateBasicInfo(ctx context.Context, data BasicInfo) error
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
-	GetNextQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) (Question, error)
+	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)
 
 	GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error)
 	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
