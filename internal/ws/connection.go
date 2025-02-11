@@ -45,33 +45,4 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	client.Read(ctx)
-
-	// keepAlive(conn, time.Duration(25)*time.Second)
 }
-
-// func keepAlive(conn *websocket.Conn, timeout time.Duration) {
-// 	lastResponse := time.Now()
-//
-// 	conn.SetPongHandler(func(msg string) error {
-// 		lastResponse = time.Now()
-// 		// log.Debug().Msg("Received pong from client!")
-// 		return nil
-// 	})
-//
-// 	go func() {
-// 		for {
-// 			err := conn.WriteMessage(websocket.PingMessage, []byte("Ping!"))
-// 			if err != nil {
-// 				log.Err(err).Msg("Failed to write ping message.")
-// 				return
-// 			}
-//
-// 			time.Sleep(timeout / 2)
-// 			if time.Now().Sub(lastResponse) > timeout {
-// 				log.Warn().Msg(fmt.Sprintf("No ping response, disconnecting to %s", conn.LocalAddr()))
-// 				_ = conn.Close()
-// 				return
-// 			}
-// 		}
-// 	}()
-// }

@@ -23,10 +23,6 @@ func (c *Client) updateQuestion(ctx context.Context, question quiz.UpdatePlayers
 		return
 	}
 
-	if c.timer.ticker != nil {
-		c.timer.Stop()
-	}
-
 	go func() {
 		c.timer.Start(*question.Duration)
 		c.handleQuestionTimer(question.QuizID, question.Question)
@@ -46,6 +42,7 @@ func (c *Client) handleNextQuestion(ctx context.Context, quizID string, orderNum
 		if errors.Is(err, pgx.ErrNoRows) {
 			log.Info().Msg("No more questions.")
 		}
+        c.timer.Stop()
 		return
 	}
 
