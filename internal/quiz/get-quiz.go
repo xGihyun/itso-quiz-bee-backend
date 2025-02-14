@@ -14,6 +14,7 @@ func (r *repository) GetByID(ctx context.Context, quizID string) (Quiz, error) {
 		quizzes.name, 
 		quizzes.description,
 		quizzes.status,
+		quizzes.is_timer_auto,
 		(
 			SELECT jsonb_agg(
 				jsonb_build_object(
@@ -47,7 +48,7 @@ func (r *repository) GetByID(ctx context.Context, quizID string) (Quiz, error) {
 
 	var quiz Quiz
 
-	if err := row.Scan(&quiz.QuizID, &quiz.CreatedAt, &quiz.Name, &quiz.Description, &quiz.Status, &quiz.Questions); err != nil {
+	if err := row.Scan(&quiz.QuizID, &quiz.CreatedAt, &quiz.Name, &quiz.Description, &quiz.Status, &quiz.IsTimerAuto, &quiz.Questions); err != nil {
 		return Quiz{}, err
 	}
 

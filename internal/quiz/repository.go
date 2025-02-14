@@ -24,7 +24,7 @@ type Repository interface {
 	GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error)
 	GetPlayers(ctx context.Context, quizID string) ([]Player, error)
 
-	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
+	// UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 	Start(ctx context.Context, quizID string) (Question, error)
 	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
 }

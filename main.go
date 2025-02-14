@@ -23,9 +23,9 @@ import (
 type Env struct {
 	auth auth.Service
 
-	user  user.Service
-	quiz  quiz.Service
-	ws    ws.Service
+	user user.Service
+	quiz quiz.Service
+	ws   ws.Service
 }
 
 func main() {
@@ -53,10 +53,10 @@ func main() {
 	go wsPool.Start()
 
 	env := &Env{
-		auth:  *auth.NewService(pool),
-		user:  *user.NewService(user.NewRepository(pool)),
-		quiz:  *quiz.NewService(quiz.NewRepository(pool)),
-		ws:    *ws.NewService(pool, wsPool),
+		auth: *auth.NewService(pool),
+		user: *user.NewService(user.NewRepository(pool)),
+		quiz: *quiz.NewService(quiz.NewRepository(pool)),
+		ws:   *ws.NewService(pool, wsPool),
 	}
 
 	router := http.NewServeMux()
@@ -78,8 +78,8 @@ func main() {
 	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
 	router.Handle("GET /api/quizzes/{quiz_id}/players/{player_id}", api.HTTPHandler(env.quiz.GetPlayer))
 
-    // TODO: 
-    // Hide the `answers[]` from players
+	// TODO:
+	// Hide the `answers[]` from players
 	router.Handle("GET /api/quizzes/{quiz_id}/current-question", api.HTTPHandler(env.quiz.GetCurrentQuestion))
 
 	host, ok := os.LookupEnv("HOST")

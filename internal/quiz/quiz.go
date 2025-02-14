@@ -7,9 +7,10 @@ import (
 
 type BasicInfo struct {
 	QuizID      string  `json:"quiz_id"`
-	Name        string  `json:"name"`
+	Name        *string  `json:"name"`
 	Description *string `json:"description"`
-	Status      Status  `json:"status"`
+	Status      *Status  `json:"status"`
+	IsTimerAuto *bool    `json:"is_timer_auto"`
 }
 
 type Quiz struct {
@@ -19,6 +20,7 @@ type Quiz struct {
 	Description *string    `json:"description"`
 	Status      Status     `json:"status"`
 	Questions   []Question `json:"questions"`
+	IsTimerAuto bool       `json:"is_timer_auto"`
 }
 
 func (r *repository) UpdateBasicInfo(ctx context.Context, data BasicInfo) error {
@@ -27,8 +29,9 @@ func (r *repository) UpdateBasicInfo(ctx context.Context, data BasicInfo) error 
     SET
         name = COALESCE($1, name),
         description = COALESCE($2, description),
-        status = COALESCE($3, status)
-    WHERE quiz_id = ($4)
+        status = COALESCE($3, status),
+        is_timer_auto = COALESCE($4, is_timer_auto)
+    WHERE quiz_id = ($5)
     `
 
 	if _, err := r.querier.Exec(
@@ -37,6 +40,7 @@ func (r *repository) UpdateBasicInfo(ctx context.Context, data BasicInfo) error 
 		data.Name,
 		data.Description,
 		data.Status,
+		data.IsTimerAuto,
 		data.QuizID,
 	); err != nil {
 		return err

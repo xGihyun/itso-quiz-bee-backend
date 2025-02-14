@@ -26,8 +26,7 @@ type Client struct {
 	Conn *websocket.Conn
 	ID   string
 
-	querier  database.Querier
-	timer    Timer
+	querier database.Querier
 }
 
 func (c *Client) Read(ctx context.Context) {
@@ -65,14 +64,19 @@ func (c *Client) Read(ctx context.Context) {
 				return
 			}
 
-			if err := quizRepo.UpdateStatus(ctx, data); err != nil {
+			basicInfo := quiz.BasicInfo{
+				QuizID: data.QuizID,
+				Status: &data.Status,
+			}
+
+			if err := quizRepo.UpdateBasicInfo(ctx, basicInfo); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
 			// TODO: Could create a separate event for this.
 			if data.Status == quiz.Paused {
-				c.timer.Pause()
+				QuizTimer.Pause()
 			} else {
 				c.resumeQuestionTimer(ctx, data.QuizID)
 			}
@@ -171,16 +175,27 @@ func (c *Client) Read(ctx context.Context) {
 			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
 
 		case TimerUpdateMode:
-			var isAuto bool
+			var data UpdateTimerModeRequest
 
-			if err := json.Unmarshal(request.Data, &isAuto); err != nil {
+			if err := json.Unmarshal(request.Data, &data); err != nil {
 				log.Error().Err(err).Send()
 				return
 			}
 
-			c.timer.isAuto = isAuto
+			basicInfo := quiz.BasicInfo{
+				QuizID:      data.QuizID,
+				IsTimerAuto: &data.IsTimerAuto,
+			}
 
-			log.Info().Msg(fmt.Sprintf("Toggled timer auto mode: %t", isAuto))
+			if err := quizRepo.UpdateBasicInfo(ctx, basicInfo); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			QuizTimer.IsAuto = data.IsTimerAuto
+            response.Data = data.IsTimerAuto
+
+			log.Info().Msg(fmt.Sprintf("Toggled timer auto mode: %t", data.IsTimerAuto))
 
 		case PlayerLeave:
 		case Heartbeat:
