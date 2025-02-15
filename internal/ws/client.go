@@ -29,7 +29,7 @@ type Client struct {
 	querier database.Querier
 }
 
-func (c *Client) Read(ctx context.Context) {
+func (c *Client) Read(ctx context.Context) error {
 	defer func() {
 		c.Pool.Unregister <- c
 		c.Conn.Close()
@@ -40,45 +40,35 @@ func (c *Client) Read(ctx context.Context) {
 	for {
 		_, data, err := c.Conn.ReadMessage()
 		if err != nil {
-			log.Error().Err(err).Send()
-			return
+			return err
 		}
 
 		var request Request
 		var response Response
 
 		if err := json.Unmarshal(data, &request); err != nil {
-			log.Error().Err(err).Send()
-			return
+			return err
 		}
 
 		response.Event = request.Event
 
 		switch request.Event {
-		// TODO: Merge this with `QuizStart`
 		case QuizUpdateStatus:
 			var data quiz.UpdateStatusRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
-			basicInfo := quiz.BasicInfo{
-				QuizID: data.QuizID,
-				Status: &data.Status,
+			if err := quizRepo.UpdateStatus(ctx, data); err != nil {
+				return err
 			}
 
-			if err := quizRepo.UpdateBasicInfo(ctx, basicInfo); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			// TODO: Could create a separate event for this.
 			if data.Status == quiz.Paused {
 				QuizTimer.Pause()
 			} else {
-				c.resumeQuestionTimer(ctx, data.QuizID)
+				QuizTimer.Resume()
+				go c.handleQuestionTimer()
 			}
 
 			response.Data = data.Status
@@ -87,33 +77,22 @@ func (c *Client) Read(ctx context.Context) {
 				Str("event_type", string(request.Event)).
 				Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
 
-		case QuizStart:
-			var quizID string
-
-			if err := json.Unmarshal(request.Data, &quizID); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			question, err := quizRepo.Start(ctx, quizID)
-			if err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			response.Data = question
-
-			log.Info().Msg("Quiz has started.")
-
 		case QuizUpdateQuestion:
 			var data quiz.UpdatePlayersQuestionRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
-			c.updateQuestion(ctx, data)
+			if err := quizRepo.UpdatePlayersQuestion(ctx, data); err != nil {
+				return err
+			}
+
+			if data.Question.Duration != nil {
+				QuizTimer.Start(*data.Question.Duration)
+				go c.handleQuestionTimer()
+			}
+
 			response.Data = data.Question
 
 			log.Info().Msg(fmt.Sprintf("Update to question #%d", data.OrderNumber))
@@ -122,8 +101,7 @@ func (c *Client) Read(ctx context.Context) {
 			var data quiz.CreateWrittenAnswerRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			response.Data = data
@@ -132,13 +110,11 @@ func (c *Client) Read(ctx context.Context) {
 			var data quiz.CreateWrittenAnswerRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			if err := quizRepo.CreateWrittenAnswer(ctx, data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			playerRequest := quiz.GetPlayerRequest{
@@ -148,8 +124,7 @@ func (c *Client) Read(ctx context.Context) {
 
 			player, err := quizRepo.GetPlayer(ctx, playerRequest)
 			if err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			response.Data = player
@@ -160,42 +135,17 @@ func (c *Client) Read(ctx context.Context) {
 			var data quiz.AddPlayerRequest
 
 			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			user, err := quizRepo.AddPlayer(ctx, data)
 			if err != nil {
-				log.Error().Err(err).Send()
-				return
+				return err
 			}
 
 			response.Data = user
 
 			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
-
-		case TimerUpdateMode:
-			var data UpdateTimerModeRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			basicInfo := quiz.BasicInfo{
-				QuizID:      data.QuizID,
-				IsTimerAuto: &data.IsTimerAuto,
-			}
-
-			if err := quizRepo.UpdateBasicInfo(ctx, basicInfo); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			QuizTimer.IsAuto = data.IsTimerAuto
-            response.Data = data.IsTimerAuto
-
-			log.Info().Msg(fmt.Sprintf("Toggled timer auto mode: %t", data.IsTimerAuto))
 
 		case PlayerLeave:
 		case Heartbeat:
@@ -207,4 +157,6 @@ func (c *Client) Read(ctx context.Context) {
 
 		c.Pool.Broadcast <- response
 	}
+
+	return nil
 }

@@ -19,20 +19,20 @@ type UpdateStatusRequest struct {
 	QuizID string `json:"quiz_id"`
 	Status Status `json:"status"`
 }
-//
-// func (r *repository) UpdateStatus(ctx context.Context, data UpdateStatusRequest) error {
-// 	sql := `
-//         UPDATE quizzes 
-//         SET status = ($1)
-//         WHERE quiz_id = ($2)
-//         `
-//
-// 	if _, err := r.querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
-// 		return err
-// 	}
-//
-// 	return nil
-// }
+
+func (r *repository) UpdateStatus(ctx context.Context, data UpdateStatusRequest) error {
+	sql := `
+        UPDATE quizzes 
+        SET status = ($1)
+        WHERE quiz_id = ($2)
+        `
+
+	if _, err := r.querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (r *repository) Start(ctx context.Context, quizID string) (Question, error) {
 	tx, err := r.querier.Begin(ctx)

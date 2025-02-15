@@ -18,7 +18,6 @@ func RequestLogger(next http.Handler) http.Handler {
 				Str("method", r.Method).
 				Str("url", r.URL.RequestURI()).
 				Int("status_code", status).
-				Str("user_agent", r.UserAgent()).
 				Dur("elapsed_ms", duration).
 				Msg("Incoming request.")
 		},

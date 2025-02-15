@@ -34,15 +34,17 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		Conn:        conn,
-		Pool:        s.pool,
-		ID:          uuid.NewString(),
-		querier:     s.querier,
+		Conn:    conn,
+		Pool:    s.pool,
+		ID:      uuid.NewString(),
+		querier: s.querier,
 	}
 
 	s.pool.Register <- client
 
 	ctx := context.Background()
 
-	client.Read(ctx)
+	if err := client.Read(ctx); err != nil {
+		log.Error().Err(err).Send()
+	}
 }
