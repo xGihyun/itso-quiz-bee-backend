@@ -3,13 +3,13 @@ package ws
 type Event string
 
 const (
-	QuizUpdateStatus Event = "quiz-update-status"
+	QuizUpdateStatus     Event = "quiz-update-status"
 	QuizUpdateQuestion   Event = "quiz-update-question"
 	QuizDisableAnswering Event = "quiz-disable-answering"
-	QuizShowLeaderboard Event = "quiz-show-leaderboard"
+	QuizShowLeaderboard  Event = "quiz-show-leaderboard"
 
-	TimerPass       Event = "timer-pass"
-	TimerDone       Event = "timer-done"
+	TimerPass Event = "timer-pass"
+	TimerDone Event = "timer-done"
 
 	PlayerJoin         Event = "player-join"
 	PlayerLeave        Event = "player-leave"

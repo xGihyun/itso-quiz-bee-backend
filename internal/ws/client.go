@@ -73,10 +73,6 @@ func (c *Client) Read(ctx context.Context) error {
 
 			response.Data = data.Status
 
-			log.Info().
-				Str("event_type", string(request.Event)).
-				Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
-
 		case QuizUpdateQuestion:
 			var data quiz.UpdatePlayersQuestionRequest
 
@@ -94,8 +90,6 @@ func (c *Client) Read(ctx context.Context) error {
 			}
 
 			response.Data = data.Question
-
-			log.Info().Msg(fmt.Sprintf("Update to question #%d", data.OrderNumber))
 
 		case PlayerTypeAnswer:
 			var data quiz.CreateWrittenAnswerRequest
@@ -129,8 +123,6 @@ func (c *Client) Read(ctx context.Context) error {
 
 			response.Data = player
 
-			log.Info().Msg("Submitted answer: " + data.Content)
-
 		case PlayerJoin:
 			var data quiz.AddPlayerRequest
 
@@ -145,7 +137,14 @@ func (c *Client) Read(ctx context.Context) error {
 
 			response.Data = user
 
-			log.Info().Msg(fmt.Sprintf("%s has joined.", user.Name))
+		case QuizShowLeaderboard:
+			var data bool
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				return err
+			}
+
+			response.Data = data
 
 		case PlayerLeave:
 		case Heartbeat:
@@ -157,6 +156,4 @@ func (c *Client) Read(ctx context.Context) error {
 
 		c.Pool.Broadcast <- response
 	}
-
-	return nil
 }
