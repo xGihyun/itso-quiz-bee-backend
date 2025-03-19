@@ -19,7 +19,7 @@ type Repository interface {
 	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 
-	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error)
+	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error)
 	GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error)
 	GetPlayers(ctx context.Context, quizID string) ([]Player, error)
 

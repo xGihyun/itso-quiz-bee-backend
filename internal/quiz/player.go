@@ -13,13 +13,13 @@ type AddPlayerRequest struct {
 	QuizID string `json:"quiz_id"`
 }
 
-func (r *repository) AddPlayer(ctx context.Context, data AddPlayerRequest) (user.GetUserResponse, error) {
+func (r *repository) AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error) {
 	tx, err := r.querier.Begin(ctx)
 	if err != nil {
-		return user.GetUserResponse{}, err
+		return user.UserResponse{}, err
 	}
 
-	var u user.GetUserResponse
+	var u user.UserResponse
 
 	err = database.Transaction(ctx, tx, func() error {
 		sql := `
@@ -52,14 +52,14 @@ func (r *repository) AddPlayer(ctx context.Context, data AddPlayerRequest) (user
 		return err
 	})
 	if err != nil {
-		return user.GetUserResponse{}, nil
+		return user.UserResponse{}, nil
 	}
 
 	return u, nil
 }
 
 type Player struct {
-	user.GetUserResponse
+	user.UserResponse
 	Result PlayerResult `json:"result"`
 }
 

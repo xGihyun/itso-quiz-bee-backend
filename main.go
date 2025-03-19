@@ -8,8 +8,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
-	"github.com/xGihyun/itso-quiz-bee/internal/auth"
 	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
@@ -21,8 +21,6 @@ import (
 )
 
 type app struct {
-	auth auth.Service
-
 	user user.Service
 	quiz quiz.Service
 	ws   ws.Service
@@ -55,7 +53,19 @@ func main() {
 		log.Fatal().Msg("FRONTEND_PORT not found.")
 	}
 
+	redisURL, ok := os.LookupEnv("REDIS_URL")
+	if !ok {
+		panic("REDIS_URL not found.")
+	}
+
 	ctx := context.Background()
+
+	opt, err := redis.ParseURL(redisURL)
+	if err != nil {
+		panic(fmt.Errorf("redis url: %w", err))
+	}
+
+	redisClient := redis.NewClient(opt)
 
 	pool, err := pgxpool.New(ctx, dbUrl)
 	if err != nil {
@@ -67,8 +77,7 @@ func main() {
 	go wsPool.Start()
 
 	app := &app{
-		auth: *auth.NewService(pool),
-		user: *user.NewService(user.NewRepository(pool)),
+		user: *user.NewService(user.NewRepository(pool, redisClient)),
 		quiz: *quiz.NewService(quiz.NewRepository(pool)),
 		ws:   *ws.NewService(pool, wsPool),
 	}
@@ -78,9 +87,10 @@ func main() {
 	router.HandleFunc("GET /ws", app.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
-	// router.Handle("GET /api/session", api.HTTPHandler(app.auth.GetCurrentUser))
-	router.Handle("POST /api/login", api.HTTPHandler(app.auth.Login))
-	router.Handle("POST /api/register", api.HTTPHandler(app.auth.Register))
+	router.Handle("GET /api/session", api.HTTPHandler(app.user.GetSession))
+	router.Handle("POST /api/sign-in", api.HTTPHandler(app.user.SignIn))
+	router.Handle("POST /api/sign-out", api.HTTPHandler(app.user.SignOut))
+	router.Handle("POST /api/sign-up", api.HTTPHandler(app.user.Create))
 
 	router.Handle("GET /api/users", api.HTTPHandler(app.user.GetAll))
 	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(app.user.GetByID))
