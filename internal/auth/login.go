@@ -21,11 +21,11 @@ func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	// if _, err := r.Cookie("session"); err != http.ErrNoCookie {
 	// 	return api.Response{
 	// 		Error:      err,
-	// 		StatusCode: http.StatusConflict,
+	// 		Code: http.StatusConflict,
 	// 		Message:    "User session already exists.",
 	// 	}
 	// }
-	
+
 	ctx := context.Background()
 
 	var data LoginRequest
@@ -35,7 +35,7 @@ func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusBadRequest,
+			Code: http.StatusBadRequest,
 			Message:    "Invalid JSON request.",
 		}
 	}
@@ -54,14 +54,14 @@ func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
 				Error:      err,
-				StatusCode: http.StatusNotFound,
+				Code: http.StatusNotFound,
 				Message:    "User not found.",
 			}
 		}
 
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 			Message:    "Failed to fetch user.",
 		}
 	}
@@ -79,7 +79,7 @@ func (s Service) Login(w http.ResponseWriter, r *http.Request) api.Response {
 	// http.SetCookie(w, &cookie)
 
 	return api.Response{
-		StatusCode: http.StatusOK,
+		Code: http.StatusOK,
 		Data:       user,
 		Message:    "Successfully logged in.",
 	}

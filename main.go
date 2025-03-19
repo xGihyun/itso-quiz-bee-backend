@@ -20,7 +20,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Env struct {
+type app struct {
 	auth auth.Service
 
 	user user.Service
@@ -32,12 +32,27 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to load .env file.")
+		log.Fatal().Err(err).Msg("Failed to load env file.")
 	}
 
 	dbUrl, ok := os.LookupEnv("DATABASE_URL")
 	if !ok {
 		log.Fatal().Msg("DATABASE_URL not found.")
+	}
+
+	host, ok := os.LookupEnv("HOST")
+	if !ok {
+		log.Fatal().Msg("HOST not found.")
+	}
+
+	port, ok := os.LookupEnv("PORT")
+	if !ok {
+		log.Fatal().Msg("PORT not found.")
+	}
+
+	frontendPort, ok := os.LookupEnv("FRONTEND_PORT")
+	if !ok {
+		log.Fatal().Msg("FRONTEND_PORT not found.")
 	}
 
 	ctx := context.Background()
@@ -46,13 +61,12 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database.")
 	}
-
 	defer pool.Close()
 
 	wsPool := ws.NewPool()
 	go wsPool.Start()
 
-	env := &Env{
+	app := &app{
 		auth: *auth.NewService(pool),
 		user: *user.NewService(user.NewRepository(pool)),
 		quiz: *quiz.NewService(quiz.NewRepository(pool)),
@@ -61,41 +75,32 @@ func main() {
 
 	router := http.NewServeMux()
 
-	router.HandleFunc("GET /ws", env.ws.HandleConnection)
+	router.HandleFunc("GET /ws", app.ws.HandleConnection)
 	router.HandleFunc("GET /", health)
 
-	// router.Handle("GET /api/session", api.HTTPHandler(env.auth.GetCurrentUser))
-	router.Handle("POST /api/login", api.HTTPHandler(env.auth.Login))
-	router.Handle("POST /api/register", api.HTTPHandler(env.auth.Register))
+	// router.Handle("GET /api/session", api.HTTPHandler(app.auth.GetCurrentUser))
+	router.Handle("POST /api/login", api.HTTPHandler(app.auth.Login))
+	router.Handle("POST /api/register", api.HTTPHandler(app.auth.Register))
 
-	router.Handle("GET /api/users", api.HTTPHandler(env.user.GetAll))
-	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(env.user.GetByID))
-	// router.HandleFunc("POST /users", env.user.Create)
+	router.Handle("GET /api/users", api.HTTPHandler(app.user.GetAll))
+	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(app.user.GetByID))
+	// router.HandleFunc("POST /users", app.user.Create)
 
-	router.Handle("GET /api/quizzes", api.HTTPHandler(env.quiz.GetMany))
-	router.Handle("POST /api/quizzes", api.HTTPHandler(env.quiz.Create))
-	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(env.quiz.GetByID))
-	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(env.quiz.GetPlayers))
-	router.Handle("GET /api/quizzes/{quiz_id}/players/{player_id}", api.HTTPHandler(env.quiz.GetPlayer))
+	router.Handle("GET /api/quizzes", api.HTTPHandler(app.quiz.GetMany))
+	router.Handle("POST /api/quizzes", api.HTTPHandler(app.quiz.Create))
+	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(app.quiz.GetByID))
+	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(app.quiz.GetPlayers))
+	router.Handle(
+		"GET /api/quizzes/{quiz_id}/players/{player_id}",
+		api.HTTPHandler(app.quiz.GetPlayer),
+	)
 
 	// TODO:
 	// Hide the `answers[]` from players
-	router.Handle("GET /api/quizzes/{quiz_id}/current-question", api.HTTPHandler(env.quiz.GetCurrentQuestion))
-
-	host, ok := os.LookupEnv("HOST")
-	if !ok {
-		log.Fatal().Msg("HOST env not found.")
-	}
-
-	port, ok := os.LookupEnv("PORT")
-	if !ok {
-		log.Fatal().Msg("PORT env not found.")
-	}
-
-	frontendPort, ok := os.LookupEnv("FRONTEND_PORT")
-	if !ok {
-		log.Fatal().Msg("FRONTEND_PORT env not found.")
-	}
+	router.Handle(
+		"GET /api/quizzes/{quiz_id}/current-question",
+		api.HTTPHandler(app.quiz.GetCurrentQuestion),
+	)
 
 	corsHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://" + host + ":" + frontendPort},

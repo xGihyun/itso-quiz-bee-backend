@@ -18,17 +18,15 @@ func (s Service) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.Resp
 		switch {
 		case errors.Is(err, http.ErrNoCookie):
 			return api.Response{
-				Error:      err,
-				Message:    "User not authenticated.",
-				StatusCode: http.StatusBadRequest,
-				Status:     api.Fail,
+				Error:   err,
+				Message: "User not authenticated.",
+				Code:    http.StatusBadRequest,
 			}
 		default:
 			return api.Response{
-				Error:      err,
-				Message:    "Server cookie error.",
-				StatusCode: http.StatusInternalServerError,
-				Status:     api.Error,
+				Error:   err,
+				Message: "Server cookie error.",
+				Code:    http.StatusInternalServerError,
 			}
 		}
 	}
@@ -37,8 +35,15 @@ func (s Service) GetCurrentUser(w http.ResponseWriter, r *http.Request) api.Resp
 
 	user, err := userRepo.GetByID(ctx, cookie.Value)
 	if err != nil {
-		return api.Response{StatusCode: http.StatusInternalServerError, Status: api.Error, Message: "Failed to fetch user."}
+		return api.Response{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to fetch user.",
+		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Status: api.Success, Message: "Fetched user.", Data: user}
+	return api.Response{
+		Code:    http.StatusCreated,
+		Message: "Fetched user.",
+		Data:    user,
+	}
 }

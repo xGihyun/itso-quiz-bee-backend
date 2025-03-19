@@ -19,23 +19,23 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Message:    "Invalid JSON request.",
+			Error:   err,
+			Code:    http.StatusBadRequest,
+			Message: "Invalid JSON request.",
 		}
 	}
 
 	if err := s.repo.Create(ctx, data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to created quiz.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to created quiz.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusCreated,
-		Message:    "Successfully created quiz.",
+		Code:    http.StatusCreated,
+		Message: "Successfully created quiz.",
 	}
 }
 
@@ -48,23 +48,23 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
-				Error:      err,
-				StatusCode: http.StatusNotFound,
-				Message:    "Quiz not found.",
+				Error:   err,
+				Code:    http.StatusNotFound,
+				Message: "Quiz not found.",
 			}
 		}
 
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to fetch quiz.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to fetch quiz.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Data:       result,
-		Message:    "Fetched quiz.",
+		Code:    http.StatusOK,
+		Data:    result,
+		Message: "Fetched quiz.",
 	}
 }
 
@@ -74,17 +74,17 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 	results, err := s.repo.GetMany(ctx)
 	if err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Data:       results,
-			Message:    "Failed to fetch quizzes.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Data:    results,
+			Message: "Failed to fetch quizzes.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Data:       results,
-		Message:    "Fetched all quizzes.",
+		Code:    http.StatusOK,
+		Data:    results,
+		Message: "Fetched all quizzes.",
 	}
 }
 
@@ -99,16 +99,16 @@ func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response
 	player, err := s.repo.GetPlayer(ctx, request)
 	if err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to fetch quiz player.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to fetch quiz player.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Data:       player,
-		Message:    "Fetched quiz player.",
+		Code:    http.StatusOK,
+		Data:    player,
+		Message: "Fetched quiz player.",
 	}
 }
 
@@ -120,17 +120,17 @@ func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Respons
 	results, err := s.repo.GetPlayers(ctx, quizID)
 	if err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Data:       results,
-			Message:    "Failed to fetch quiz players.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Data:    results,
+			Message: "Failed to fetch quiz players.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Data:       results,
-		Message:    "Fetched quiz players.",
+		Code:    http.StatusOK,
+		Data:    results,
+		Message: "Fetched quiz players.",
 	}
 }
 
@@ -143,25 +143,25 @@ func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response
 
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Message:    "Invalid JSON request.",
+			Error:   err,
+			Code:    http.StatusBadRequest,
+			Message: "Invalid JSON request.",
 		}
 	}
 
 	user, err := s.repo.AddPlayer(ctx, data)
 	if err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to add player to quiz.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to add player to quiz.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusCreated,
-		Message:    user.Name + " has joined.",
-		Data:       user,
+		Code:    http.StatusCreated,
+		Message: user.Name + " has joined.",
+		Data:    user,
 	}
 }
 
@@ -174,23 +174,23 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
-				Error:      err,
-				StatusCode: http.StatusNotFound,
-				Message:    "Quiz current question not found.",
+				Error:   err,
+				Code:    http.StatusNotFound,
+				Message: "Quiz current question not found.",
 			}
 		}
 
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to fetch quiz current question.",
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to fetch quiz current question.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Message:    "Fetched quiz current question.",
-		Data:       question,
+		Code:    http.StatusOK,
+		Message: "Fetched quiz current question.",
+		Data:    question,
 	}
 }
 
@@ -203,23 +203,23 @@ func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) ap
 
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Message:    "Invalid JSON request.",
+			Error:   err,
+			Code:    http.StatusBadRequest,
+			Message: "Invalid JSON request.",
 		}
 	}
 
 	if err := s.repo.CreateWrittenAnswer(ctx, data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusInternalServerError,
-			Message:    "Failed to create answer: " + data.Content,
+			Error:   err,
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to create answer: " + data.Content,
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusCreated,
-		Message:    "Successfully created answer: " + data.Content,
+		Code:    http.StatusCreated,
+		Message: "Successfully created answer: " + data.Content,
 	}
 }
 
@@ -234,31 +234,31 @@ func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.R
 
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusBadRequest,
-			Message:    "Invalid JSON request.",
+			Error:   err,
+			Code:    http.StatusBadRequest,
+			Message: "Invalid JSON request.",
 		}
 	}
 
 	if data.QuizID != quizID {
 		return api.Response{
-			StatusCode: http.StatusUnprocessableEntity,
-			Message:    "Invalid JSON request.",
+			Code:    http.StatusUnprocessableEntity,
+			Message: "Invalid JSON request.",
 		}
 	}
 
 	answer, err := s.repo.GetWrittenAnswer(ctx, data)
 	if err != nil {
 		return api.Response{
-			Error:      err,
-			StatusCode: http.StatusNotFound,
-			Message:    "Written answer not found.",
+			Error:   err,
+			Code:    http.StatusNotFound,
+			Message: "Written answer not found.",
 		}
 	}
 
 	return api.Response{
-		StatusCode: http.StatusOK,
-		Message:    "Fetched written answer.",
-		Data:       answer,
+		Code:    http.StatusOK,
+		Message: "Fetched written answer.",
+		Data:    answer,
 	}
 }

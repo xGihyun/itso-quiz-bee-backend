@@ -20,7 +20,7 @@ func (s Service) Register(w http.ResponseWriter, r *http.Request) api.Response {
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusBadRequest,
+			Code: http.StatusBadRequest,
 			Message:    "Invalid JSON request.",
 		}
 	}
@@ -31,17 +31,17 @@ func (s Service) Register(w http.ResponseWriter, r *http.Request) api.Response {
 		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
 			return api.Response{
 				Error:      err,
-				StatusCode: http.StatusConflict,
+				Code: http.StatusConflict,
 				Message:    "User " + data.Username + " already exists.",
 			}
 		}
 
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 			Message:    "Failed to register user.",
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Message: "Succesfully registered."}
+	return api.Response{Code: http.StatusCreated, Message: "Succesfully registered."}
 }

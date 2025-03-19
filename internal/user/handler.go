@@ -20,18 +20,18 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusBadRequest,
+			Code: http.StatusBadRequest,
 		}
 	}
 
 	if err := s.repo.Create(ctx, data); err != nil {
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 		}
 	}
 
-	return api.Response{StatusCode: http.StatusCreated, Message: "Successfully created user."}
+	return api.Response{Code: http.StatusCreated, Message: "Successfully created user."}
 }
 
 func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
@@ -44,21 +44,21 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
 				Error:      err,
-				StatusCode: http.StatusNotFound,
+				Code: http.StatusNotFound,
 				Message:    "User not found.",
 			}
 		}
 
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 			Message:    "Failed to fetch user.",
 		}
 	}
 
 	return api.Response{
 		Data:       user,
-		StatusCode: http.StatusOK,
+		Code: http.StatusOK,
 		Message:    "Fetched user.",
 	}
 }
@@ -70,13 +70,13 @@ func (s *Service) GetAll(w http.ResponseWriter, r *http.Request) api.Response {
 	if err != nil {
 		return api.Response{
 			Error:      err,
-			StatusCode: http.StatusInternalServerError,
+			Code: http.StatusInternalServerError,
 		}
 	}
 
 	return api.Response{
 		Data:       users,
-		StatusCode: http.StatusOK,
+		Code: http.StatusOK,
 		Message:    "Fetched all users.",
 	}
 }
