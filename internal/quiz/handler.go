@@ -10,7 +10,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
-func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) Save(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := context.Background()
 
 	var data Quiz
@@ -25,7 +25,7 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 		}
 	}
 
-	if err := s.repo.Create(ctx, data); err != nil {
+	if err := s.repo.Save(ctx, data); err != nil {
 		return api.Response{
 			Error:   err,
 			Code:    http.StatusInternalServerError,

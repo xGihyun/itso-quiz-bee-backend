@@ -10,7 +10,7 @@ import (
 type Repository interface {
 	GetByID(ctx context.Context, quizID string) (Quiz, error)
 	GetMany(ctx context.Context) ([]BasicInfo, error)
-	Create(ctx context.Context, data Quiz) error
+	Save(ctx context.Context, data Quiz) error
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)

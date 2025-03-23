@@ -6,7 +6,7 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
-func (r *repository) Create(ctx context.Context, data Quiz) error {
+func (r *repository) Save(ctx context.Context, data Quiz) error {
 	sql := `
     INSERT INTO quizzes (quiz_id, name, description, status)
     VALUES ($1, $2, $3, $4)

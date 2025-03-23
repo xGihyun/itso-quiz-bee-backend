@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -25,6 +24,7 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 }
 
 func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	conn, err := upgrade(w, r)
 	defer conn.Close()
 
@@ -33,16 +33,23 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &Client{
-		Conn:    conn,
-		Pool:    s.pool,
-		ID:      uuid.NewString(),
-		querier: s.querier,
+	userId := r.URL.Query().Get("user_id")
+	user, err := s.userRepo.GetByID(ctx, userId)
+	if err != nil {
+		log.Error().Err(err).Send()
+		return
+	}
+
+	client := &client{
+		conn:     conn,
+		pool:     s.pool,
+		id:       uuid.NewString(),
+		// quizRepo: s.quizRepo,
+		role:     user.Role,
+        handlers: s.handlers,
 	}
 
 	s.pool.Register <- client
-
-	ctx := context.Background()
 
 	if err := client.Read(ctx); err != nil {
 		log.Error().Err(err).Send()

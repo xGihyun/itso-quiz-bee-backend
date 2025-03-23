@@ -76,10 +76,14 @@ func main() {
 	wsPool := ws.NewPool()
 	go wsPool.Start()
 
+	userRepo := user.NewRepository(pool, redisClient)
+	quizRepo := quiz.NewRepository(pool)
+	quizSocket := quiz.NewSocketService(quizRepo, wsPool)
+	wsHandlers := map[string]ws.EventHandler{"quiz": quizSocket}
 	app := &app{
-		user: *user.NewService(user.NewRepository(pool, redisClient)),
-		quiz: *quiz.NewService(quiz.NewRepository(pool)),
-		ws:   *ws.NewService(pool, wsPool),
+		user: *user.NewService(userRepo),
+		quiz: *quiz.NewService(quizRepo),
+		ws:   *ws.NewService(wsPool, userRepo, wsHandlers),
 	}
 
 	router := http.NewServeMux()
@@ -97,7 +101,7 @@ func main() {
 	// router.HandleFunc("POST /users", app.user.Create)
 
 	router.Handle("GET /api/quizzes", api.HTTPHandler(app.quiz.GetMany))
-	router.Handle("POST /api/quizzes", api.HTTPHandler(app.quiz.Create))
+	router.Handle("POST /api/quizzes", api.HTTPHandler(app.quiz.Save))
 	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(app.quiz.GetByID))
 	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(app.quiz.GetPlayers))
 	router.Handle(
