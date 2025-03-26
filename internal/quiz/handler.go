@@ -40,7 +40,7 @@ func (s *Service) Save(w http.ResponseWriter, r *http.Request) api.Response {
 func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	quizID := r.PathValue("quiz_id")
+	quizID := r.PathValue("quizId")
 
 	result, err := s.repo.GetByID(ctx, quizID)
 	if err != nil {
@@ -89,8 +89,8 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	quizID := r.PathValue("quiz_id")
-	playerID := r.PathValue("player_id")
+	quizID := r.PathValue("quizId")
+	playerID := r.PathValue("playerId")
 
 	request := GetPlayerRequest{UserID: playerID, QuizID: quizID}
 
@@ -113,7 +113,7 @@ func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response
 func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	quizID := r.PathValue("quiz_id")
+	quizID := r.PathValue("quizId")
 
 	results, err := s.repo.GetPlayers(ctx, quizID)
 	if err != nil {
@@ -165,7 +165,7 @@ func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response
 func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	quizID := r.PathValue("quiz_id")
+	quizID := r.PathValue("quizId")
 
 	question, err := s.repo.GetCurrentQuestion(ctx, quizID)
 	if err != nil {
@@ -222,7 +222,7 @@ func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) ap
 func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	quizID := r.PathValue("quiz_id")
+	quizID := r.PathValue("quizId")
 
 	var data GetWrittenAnswerRequest
 

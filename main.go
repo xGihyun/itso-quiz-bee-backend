@@ -102,10 +102,10 @@ func main() {
 
 	router.Handle("GET /api/quizzes", api.HTTPHandler(app.quiz.GetMany))
 	router.Handle("POST /api/quizzes", api.HTTPHandler(app.quiz.Save))
-	router.Handle("GET /api/quizzes/{quiz_id}", api.HTTPHandler(app.quiz.GetByID))
-	router.Handle("GET /api/quizzes/{quiz_id}/players", api.HTTPHandler(app.quiz.GetPlayers))
+	router.Handle("GET /api/quizzes/{quizId}", api.HTTPHandler(app.quiz.GetByID))
+	router.Handle("GET /api/quizzes/{quizId}/players", api.HTTPHandler(app.quiz.GetPlayers))
 	router.Handle(
-		"GET /api/quizzes/{quiz_id}/players/{player_id}",
+		"GET /api/quizzes/{quizId}/players/{playerId}",
 		api.HTTPHandler(app.quiz.GetPlayer),
 	)
 
