@@ -13,7 +13,10 @@ type AddPlayerRequest struct {
 	QuizID string `json:"quiz_id"`
 }
 
-func (r *repository) AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error) {
+func (r *repository) AddPlayer(
+	ctx context.Context,
+	data AddPlayerRequest,
+) (user.UserResponse, error) {
 	tx, err := r.querier.Begin(ctx)
 	if err != nil {
 		return user.UserResponse{}, err
@@ -39,13 +42,14 @@ func (r *repository) AddPlayer(ctx context.Context, data AddPlayerRequest) (user
             created_at,
             username,
             role,
-            name
+            name,
+            avatar_url
         FROM users WHERE user_id = ($1)
         `
 
 		row := r.querier.QueryRow(ctx, sql, data.UserID)
 
-		if err := row.Scan(&u.UserID, &u.CreatedAt, &u.Username, &u.Role, &u.Name); err != nil {
+		if err := row.Scan(&u.UserID, &u.CreatedAt, &u.Username, &u.Role, &u.Name, &u.AvatarURL); err != nil {
 			return err
 		}
 

@@ -54,6 +54,7 @@ func (p *Pool) Start() {
 						log.Error().Err(err).Send()
 					}
 				}
+
 			case Admins:
 				for client := range p.Clients {
 					// NOTE: Potential import cycle

@@ -33,7 +33,7 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId := r.URL.Query().Get("user_id")
+	userId := r.URL.Query().Get("userId")
 	user, err := s.userRepo.GetByID(ctx, userId)
 	if err != nil {
 		log.Error().Err(err).Send()
@@ -44,7 +44,6 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		conn:     conn,
 		pool:     s.pool,
 		id:       uuid.NewString(),
-		// quizRepo: s.quizRepo,
 		role:     user.Role,
         handlers: s.handlers,
 	}

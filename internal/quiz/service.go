@@ -30,8 +30,9 @@ func NewSocketService(repo Repository, wsPool *ws.Pool) *SocketService {
 }
 
 const (
-	updateStatus   ws.Event = "quiz:update-status"
-	updateQuestion ws.Event = "quiz:update-question"
+	updateStatus    ws.Event = "quiz:update-status"
+	updateQuestion  ws.Event = "quiz:update-question"
+	showLeaderboard ws.Event = "quiz:show-leaderboard"
 
 	timerPass ws.Event = "quiz:timer-pass"
 	timerDone ws.Event = "quiz:timer-done"
@@ -77,14 +78,80 @@ func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Resp
 		}
 
 		// s.timerManager.StopTimer(data.QuizID)
-		if data.Duration != nil {
-			s.timerManager.StartTimer(ctx, data.QuizID, *data.Duration)
+		if data.Question.Duration != nil {
+			s.timerManager.StartTimer(ctx, data.QuizID, *data.Question.Duration)
 		}
 
 		return ws.Response{
 			Event:  request.Event,
 			Target: ws.All,
-			Data:   data.Question,
+			Data:   data,
+		}, nil
+
+	case showLeaderboard:
+		var data bool
+		if err := json.Unmarshal(request.Data, &data); err != nil {
+			return ws.Response{}, err
+		}
+		return ws.Response{
+			Event:  request.Event,
+			Target: ws.All,
+			Data:   data,
+		}, nil
+
+	case playerTypeAnswer:
+		var data CreateWrittenAnswerRequest
+		if err := json.Unmarshal(request.Data, &data); err != nil {
+			return ws.Response{}, err
+		}
+
+		return ws.Response{
+			Event:  request.Event,
+			Target: ws.All,
+			Data:   data,
+		}, nil
+
+	case playerSubmitAnswer:
+		var data CreateWrittenAnswerRequest
+		if err := json.Unmarshal(request.Data, &data); err != nil {
+			return ws.Response{}, err
+		}
+
+		if err := s.repo.CreateWrittenAnswer(ctx, data); err != nil {
+			return ws.Response{}, err
+		}
+
+		playerRequest := GetPlayerRequest{
+			UserID: data.UserID,
+			QuizID: data.QuizID,
+		}
+
+		player, err := s.repo.GetPlayer(ctx, playerRequest)
+		if err != nil {
+			return ws.Response{}, err
+		}
+
+		return ws.Response{
+			Event:  request.Event,
+			Target: ws.All,
+			Data:   player,
+		}, nil
+
+	case playerJoin:
+		var data AddPlayerRequest
+		if err := json.Unmarshal(request.Data, &data); err != nil {
+			return ws.Response{}, err
+		}
+
+		user, err := s.repo.AddPlayer(ctx, data)
+		if err != nil {
+			return ws.Response{}, err
+		}
+
+		return ws.Response{
+			Event:  request.Event,
+			Target: ws.All,
+			Data:   user,
 		}, nil
 	}
 
