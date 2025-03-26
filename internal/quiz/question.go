@@ -13,19 +13,19 @@ const (
 )
 
 type Question struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
+	QuizQuestionID string          `json:"quizQuestionId"`
 	Content        string          `json:"content"`
 	Variant        QuestionVariant `json:"variant"`
 	Points         int16           `json:"points"`
-	OrderNumber    int16           `json:"order_number"`
+	OrderNumber    int16           `json:"orderNumber"`
 	Duration       *int            `json:"duration"`
 	Answers        []Answer        `json:"answers"`
 }
 
 type Answer struct {
-	QuizAnswerID string `json:"quiz_answer_id"`
+	QuizAnswerID string `json:"quizAnswerId"`
 	Content      string `json:"content"`
-	IsCorrect    bool   `json:"is_correct"`
+	IsCorrect    bool   `json:"isCorrect"`
 }
 
 // NOTE:
@@ -71,11 +71,14 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 }
 
 type GetNextQuestionRequest struct {
-	QuizID      string `json:"quiz_id"`
-	OrderNumber int16  `json:"order_number"`
+	QuizID      string `json:"quizId"`
+	OrderNumber int16  `json:"orderNumber"`
 }
 
-func (r *repository) GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error) {
+func (r *repository) GetNextQuestion(
+	ctx context.Context,
+	data GetNextQuestionRequest,
+) (Question, error) {
 	sql := `
 	SELECT 
 		jsonb_build_object(

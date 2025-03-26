@@ -5,20 +5,23 @@ import (
 )
 
 type PlayerAnswer struct {
-	PlayerAnswerID string `json:"player_answer_id"`
+	PlayerAnswerID string `json:"playerAnswerid"`
 	Content        string `json:"content"`
-	IsCorrect      bool   `json:"is_correct"`
-	QuizQuestionID string `json:"quiz_question_id"`
+	IsCorrect      bool   `json:"isCorrect"`
+	QuizQuestionID string `json:"quizQuestionId"`
 }
 
 type CreateWrittenAnswerRequest struct {
 	Content        string `json:"content"`
-	QuizQuestionID string `json:"quiz_question_id"`
-	UserID         string `json:"user_id"`
-	QuizID         string `json:"quiz_id"`
+	QuizQuestionID string `json:"quizQuestionId"`
+	UserID         string `json:"userId"`
+	QuizID         string `json:"quizId"`
 }
 
-func (r *repository) CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error {
+func (r *repository) CreateWrittenAnswer(
+	ctx context.Context,
+	data CreateWrittenAnswerRequest,
+) error {
 	sql := `
 	INSERT INTO player_written_answers (content, quiz_question_id, user_id)
 	VALUES ($1, $2, $3)
@@ -33,16 +36,19 @@ func (r *repository) CreateWrittenAnswer(ctx context.Context, data CreateWritten
 }
 
 type GetWrittenAnswerRequest struct {
-	QuizID string `json:"quiz_id"`
-	UserID string `json:"user_id"`
+	QuizID string `json:"quizId"`
+	UserID string `json:"userId"`
 }
 
 type GetWrittenAnswerResponse struct {
-	PlayerWrittenAnswerID string `json:"player_written_answer_id"`
+	PlayerWrittenAnswerID string `json:"playerWrittenAnswerId"`
 	Content               string `json:"content"`
 }
 
-func (r *repository) GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error) {
+func (r *repository) GetWrittenAnswer(
+	ctx context.Context,
+	data GetWrittenAnswerRequest,
+) (GetWrittenAnswerResponse, error) {
 	question, err := r.GetCurrentQuestion(ctx, data.QuizID)
 	if err != nil {
 		return GetWrittenAnswerResponse{}, err
@@ -66,11 +72,14 @@ func (r *repository) GetWrittenAnswer(ctx context.Context, data GetWrittenAnswer
 }
 
 type CreateSelectedAnswerRequest struct {
-	QuizAnswerID string `json:"quiz_answer_id"`
-	UserID       string `json:"user_id"`
+	QuizAnswerID string `json:"quizAnswerId"`
+	UserID       string `json:"userId"`
 }
 
-func (r *repository) CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error {
+func (r *repository) CreateSelectedAnswer(
+	ctx context.Context,
+	data CreateSelectedAnswerRequest,
+) error {
 	sql := `
 	INSERT INTO player_selected_answers (quiz_answer_id, user_id)
 	VALUES ($1, $2)

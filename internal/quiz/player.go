@@ -9,8 +9,8 @@ import (
 )
 
 type AddPlayerRequest struct {
-	UserID string `json:"user_id"`
-	QuizID string `json:"quiz_id"`
+	UserID string `json:"userId"`
+	QuizID string `json:"quizId"`
 }
 
 func (r *repository) AddPlayer(
@@ -73,8 +73,8 @@ type PlayerResult struct {
 }
 
 type GetPlayerRequest struct {
-	UserID string `json:"user_id"`
-	QuizID string `json:"quiz_id"`
+	UserID string `json:"userId"`
+	QuizID string `json:"quizId"`
 }
 
 func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error) {

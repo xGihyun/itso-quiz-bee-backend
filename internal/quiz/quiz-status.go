@@ -16,7 +16,7 @@ const (
 )
 
 type UpdateStatusRequest struct {
-	QuizID string `json:"quiz_id"`
+	QuizID string `json:"quizId"`
 	Status Status `json:"status"`
 }
 

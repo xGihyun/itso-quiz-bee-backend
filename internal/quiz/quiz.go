@@ -5,8 +5,8 @@ import (
 )
 
 type BasicInfo struct {
-	QuizID      string    `json:"quiz_id"`
-	CreatedAt   time.Time `json:"created_at"`
+	QuizID      string    `json:"quizId"`
+	CreatedAt   time.Time `json:"createdAt"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description"`
 	Status      Status    `json:"status"`

@@ -4,7 +4,7 @@ import "context"
 
 type UpdatePlayersQuestionRequest struct {
 	Question Question `json:"question"`
-	QuizID   string   `json:"quiz_id"`
+	QuizID   string   `json:"quizId"`
 }
 
 func (r *repository) UpdatePlayersQuestion(
