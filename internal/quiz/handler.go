@@ -1,7 +1,6 @@
 package quiz
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,12 +10,11 @@ import (
 )
 
 func (s *Service) Save(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	var data Quiz
 
 	decoder := json.NewDecoder(r.Body)
-
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:   err,
@@ -40,7 +38,7 @@ func (s *Service) Save(w http.ResponseWriter, r *http.Request) api.Response {
 }
 
 func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	quizID := r.PathValue("quiz_id")
 
@@ -69,7 +67,7 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 }
 
 func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	results, err := s.repo.GetMany(ctx)
 	if err != nil {
@@ -89,7 +87,7 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 }
 
 func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	quizID := r.PathValue("quiz_id")
 	playerID := r.PathValue("player_id")
@@ -113,7 +111,7 @@ func (s *Service) GetPlayer(w http.ResponseWriter, r *http.Request) api.Response
 }
 
 func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	quizID := r.PathValue("quiz_id")
 
@@ -135,12 +133,11 @@ func (s *Service) GetPlayers(w http.ResponseWriter, r *http.Request) api.Respons
 }
 
 func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	var data AddPlayerRequest
 
 	decoder := json.NewDecoder(r.Body)
-
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:   err,
@@ -166,7 +163,7 @@ func (s *Service) AddPlayer(w http.ResponseWriter, r *http.Request) api.Response
 }
 
 func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	quizID := r.PathValue("quiz_id")
 
@@ -195,12 +192,11 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 }
 
 func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	var data CreateWrittenAnswerRequest
 
 	decoder := json.NewDecoder(r.Body)
-
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:   err,
@@ -224,14 +220,13 @@ func (s *Service) CreateWrittenAnswer(w http.ResponseWriter, r *http.Request) ap
 }
 
 func (s *Service) GetWrittenAnswer(w http.ResponseWriter, r *http.Request) api.Response {
-	ctx := context.Background()
+	ctx := r.Context()
 
 	quizID := r.PathValue("quiz_id")
 
 	var data GetWrittenAnswerRequest
 
 	decoder := json.NewDecoder(r.Body)
-
 	if err := decoder.Decode(&data); err != nil {
 		return api.Response{
 			Error:   err,
