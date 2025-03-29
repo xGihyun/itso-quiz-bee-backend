@@ -3,6 +3,7 @@ package quiz
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
@@ -37,23 +38,41 @@ func (s *Service) Save(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 }
 
-func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) Get(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
 	quizID := r.PathValue("quizId")
+	view := r.URL.Query().Get("view")
+	includeAnswersParam := r.URL.Query().Get("includeAnswers")
 
-	result, err := s.repo.GetByID(ctx, quizID)
+	includeAnswers := false
+	if includeAnswersParam == "true" {
+		includeAnswers = true
+	}
+
+	var (
+		result any
+		err    error
+	)
+
+	switch view {
+	case "basic":
+		result, err = s.repo.GetBasicInfo(ctx, quizID)
+	default:
+		result, err = s.repo.Get(ctx, quizID, includeAnswers)
+	}
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return api.Response{
-				Error:   err,
+				Error:   fmt.Errorf("get quiz: %w", err),
 				Code:    http.StatusNotFound,
 				Message: "Quiz not found.",
 			}
 		}
 
 		return api.Response{
-			Error:   err,
+			Error:   fmt.Errorf("get quiz: %w", err),
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to fetch quiz.",
 		}
@@ -66,13 +85,13 @@ func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	}
 }
 
-func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
+func (s *Service) ListBasicInfo(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	results, err := s.repo.GetMany(ctx)
+	results, err := s.repo.ListBasicInfo(ctx)
 	if err != nil {
 		return api.Response{
-			Error:   err,
+			Error:   fmt.Errorf("list quiz basic info: %w", err),
 			Code:    http.StatusInternalServerError,
 			Data:    results,
 			Message: "Failed to fetch quizzes.",
@@ -82,7 +101,7 @@ func (s *Service) GetMany(w http.ResponseWriter, r *http.Request) api.Response {
 	return api.Response{
 		Code:    http.StatusOK,
 		Data:    results,
-		Message: "Fetched all quizzes.",
+		Message: "Fetched quizzes.",
 	}
 }
 

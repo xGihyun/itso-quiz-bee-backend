@@ -43,7 +43,12 @@ func (r *repository) Save(ctx context.Context, data Quiz) error {
 	return nil
 }
 
-func createQuestion(querier database.Querier, ctx context.Context, question Question, quizID string) error {
+func createQuestion(
+	querier database.Querier,
+	ctx context.Context,
+	question Question,
+	quizID string,
+) error {
 	sql := `
     INSERT INTO quiz_questions (
         quiz_question_id, 
@@ -102,9 +107,14 @@ func createQuestion(querier database.Querier, ctx context.Context, question Ques
 	return nil
 }
 
-func createAnswer(querier database.Querier, ctx context.Context, answer Answer, questionID string) error {
+func createAnswer(
+	querier database.Querier,
+	ctx context.Context,
+	answer Answer,
+	questionID string,
+) error {
 	sql := `
-	INSERT INTO quiz_answers (quiz_answer_id, content, is_correct, quiz_question_id)
+	INSERT INTO quiz_answers (quiz_answer_id, content, quiz_question_id)
 	VALUES ($1, $2, $3, $4)
 	ON CONFLICT(quiz_answer_id)
 	DO UPDATE SET content = ($2)
@@ -115,7 +125,6 @@ func createAnswer(querier database.Querier, ctx context.Context, answer Answer, 
 		sql,
 		answer.QuizAnswerID,
 		answer.Content,
-		answer.IsCorrect,
 		questionID,
 	); err != nil {
 		return err

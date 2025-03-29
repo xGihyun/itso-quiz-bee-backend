@@ -19,13 +19,12 @@ type Question struct {
 	Points         int16           `json:"points"`
 	OrderNumber    int16           `json:"orderNumber"`
 	Duration       *int            `json:"duration"`
-	Answers        []Answer        `json:"answers"`
+	Answers        []Answer        `json:"answers,omitempty"`
 }
 
 type Answer struct {
 	QuizAnswerID string `json:"quizAnswerId"`
 	Content      string `json:"content"`
-	IsCorrect    bool   `json:"isCorrect"`
 }
 
 // NOTE:

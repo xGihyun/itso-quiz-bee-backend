@@ -8,14 +8,19 @@ import (
 )
 
 type Repository interface {
-	GetByID(ctx context.Context, quizID string) (Quiz, error)
-	GetMany(ctx context.Context) ([]BasicInfo, error)
+	Get(ctx context.Context, quizID string, includeAnswers bool) (Quiz, error)
+	GetBasicInfo(ctx context.Context, quizID string) (BasicInfo, error)
+	ListBasicInfo(ctx context.Context) ([]BasicInfo, error)
+
 	Save(ctx context.Context, data Quiz) error
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)
 
-	GetWrittenAnswer(ctx context.Context, data GetWrittenAnswerRequest) (GetWrittenAnswerResponse, error)
+	GetWrittenAnswer(
+		ctx context.Context,
+		data GetWrittenAnswerRequest,
+	) (GetWrittenAnswerResponse, error)
 	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 
