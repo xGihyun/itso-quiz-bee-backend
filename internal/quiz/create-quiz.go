@@ -53,7 +53,6 @@ func createQuestion(
     INSERT INTO quiz_questions (
         quiz_question_id, 
         content, 
-        variant, 
         points, 
         order_number, 
         duration, 
@@ -70,7 +69,6 @@ func createQuestion(
     ON CONFLICT(quiz_question_id)
     DO UPDATE SET
         content = ($2),
-        variant = ($3),
         points = ($4),
         order_number = ($5),
         duration = 
@@ -86,7 +84,6 @@ func createQuestion(
 		sql,
 		question.QuizQuestionID,
 		question.Content,
-		question.Variant,
 		question.Points,
 		question.OrderNumber,
 		question.Duration,

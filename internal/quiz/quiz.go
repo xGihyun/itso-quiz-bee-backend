@@ -34,7 +34,6 @@ func (r *repository) Get(ctx context.Context, quizID string, includeAnswers bool
 				jsonb_build_object(
 					'quizQuestionId', quiz_questions.quiz_question_id,
 					'content', quiz_questions.content,
-					'variant', quiz_questions.variant,
 					'points', quiz_questions.points,
 					'orderNumber', quiz_questions.order_number,
 					'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT

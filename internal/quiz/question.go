@@ -4,22 +4,13 @@ import (
 	"context"
 )
 
-type QuestionVariant string
-
-const (
-	MultipleChoice QuestionVariant = "multiple-choice"
-	Boolean        QuestionVariant = "boolean"
-	Written        QuestionVariant = "written"
-)
-
 type Question struct {
-	QuizQuestionID string          `json:"quizQuestionId"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	OrderNumber    int16           `json:"orderNumber"`
-	Duration       *int            `json:"duration"`
-	Answers        []Answer        `json:"answers,omitempty"`
+	QuizQuestionID string   `json:"quizQuestionId"`
+	Content        string   `json:"content"`
+	Points         int16    `json:"points"`
+	OrderNumber    int16    `json:"orderNumber"`
+	Duration       *int     `json:"duration"`
+	Answers        []Answer `json:"answers,omitempty"`
 }
 
 type Answer struct {
@@ -37,7 +28,6 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 		jsonb_build_object(
 			'quiz_question_id', quiz_questions.quiz_question_id,
 			'content', quiz_questions.content,
-			'variant', quiz_questions.variant,
 			'points', quiz_questions.points,
 			'order_number', quiz_questions.order_number,
 			'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
@@ -83,7 +73,6 @@ func (r *repository) GetNextQuestion(
 		jsonb_build_object(
 			'quiz_question_id', quiz_questions.quiz_question_id,
 			'content', quiz_questions.content,
-			'variant', quiz_questions.variant,
 			'points', quiz_questions.points,
 			'order_number', quiz_questions.order_number,
 			'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,

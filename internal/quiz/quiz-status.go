@@ -57,7 +57,6 @@ func (r *repository) Start(ctx context.Context, quizID string) (Question, error)
         SELECT
             quiz_question_id,
             content,
-            variant,
             points,
             order_number,
             EXTRACT(epoch FROM duration)::INT AS duration,
@@ -82,7 +81,6 @@ func (r *repository) Start(ctx context.Context, quizID string) (Question, error)
 		if err := row.Scan(
 			&question.QuizQuestionID,
 			&question.Content,
-			&question.Variant,
 			&question.Points,
 			&question.OrderNumber,
 			&question.Duration,
