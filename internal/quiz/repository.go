@@ -11,8 +11,8 @@ type Repository interface {
 	Get(ctx context.Context, quizID string, includeAnswers bool) (Quiz, error)
 	GetBasicInfo(ctx context.Context, quizID string) (BasicInfo, error)
 	ListBasicInfo(ctx context.Context) ([]BasicInfo, error)
-
 	Save(ctx context.Context, data Quiz) error
+	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)
@@ -27,9 +27,6 @@ type Repository interface {
 	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error)
 	GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error)
 	GetPlayers(ctx context.Context, quizID string) ([]Player, error)
-
-	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
-	Start(ctx context.Context, quizID string) (Question, error)
 	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
 }
 

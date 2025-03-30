@@ -22,6 +22,10 @@ type Answer struct {
 // This assumes that all players are on the same question.
 // This is used to persist the current question during an ongoing quiz in case
 // the user refreshes the page.
+
+// TODO: Store the current question on Redis instead, rather than checking for
+// a single players' current question. This enables a single source of truth
+// rather than this messy solution.
 func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
 	sql := `
 	SELECT 

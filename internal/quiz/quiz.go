@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
 type BasicInfo struct {
@@ -123,4 +124,156 @@ func (r *repository) ListBasicInfo(ctx context.Context) ([]BasicInfo, error) {
 	}
 
 	return quizzes, nil
+}
+
+func (r *repository) Save(ctx context.Context, data Quiz) error {
+	sql := `
+    INSERT INTO quizzes (quiz_id, name, description, status)
+    VALUES ($1, $2, $3, $4)
+	ON CONFLICT(quiz_id)
+	DO UPDATE SET
+		name = ($2),
+		description = ($3),
+		status = ($4)
+    `
+
+	tx, err := r.querier.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = database.Transaction(ctx, tx, func() error {
+		_, err = tx.Exec(ctx, sql, data.QuizID, data.Name, data.Description, data.Status)
+		if err != nil {
+			return err
+		}
+
+		for i, question := range data.Questions {
+			question.OrderNumber = int16(i + 1)
+			if err := createQuestion(tx, ctx, question, data.QuizID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createQuestion(
+	querier database.Querier,
+	ctx context.Context,
+	question Question,
+	quizID string,
+) error {
+	sql := `
+    INSERT INTO quiz_questions (
+        quiz_question_id, 
+        content, 
+        points, 
+        order_number, 
+        duration, 
+        quiz_id
+    )
+    VALUES (
+        $1, $2, $3, $4, $5, 
+            CASE WHEN $6::int IS NOT NULL 
+            THEN make_interval(secs => $6::int)
+            ELSE NULL
+        END,
+        $7
+    )
+    ON CONFLICT(quiz_question_id)
+    DO UPDATE SET
+        content = ($2),
+        points = ($4),
+        order_number = ($5),
+        duration = 
+            CASE WHEN $6::int IS NOT NULL 
+            THEN make_interval(secs => $6::int)
+            ELSE NULL
+            END
+    RETURNING quiz_question_id
+    `
+
+	row := querier.QueryRow(
+		ctx,
+		sql,
+		question.QuizQuestionID,
+		question.Content,
+		question.Points,
+		question.OrderNumber,
+		question.Duration,
+		quizID,
+	)
+
+	var questionID string
+	if err := row.Scan(&questionID); err != nil {
+		return err
+	}
+
+	for _, answer := range question.Answers {
+		if err := createAnswer(querier, ctx, answer, questionID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createAnswer(
+	querier database.Querier,
+	ctx context.Context,
+	answer Answer,
+	questionID string,
+) error {
+	sql := `
+	INSERT INTO quiz_answers (quiz_answer_id, content, quiz_question_id)
+	VALUES ($1, $2, $3, $4)
+	ON CONFLICT(quiz_answer_id)
+	DO UPDATE SET content = ($2)
+    `
+
+	if _, err := querier.Exec(
+		ctx,
+		sql,
+		answer.QuizAnswerID,
+		answer.Content,
+		questionID,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type Status string
+
+const (
+	Open    Status = "open"
+	Started Status = "started"
+	Paused  Status = "paused"
+	Closed  Status = "closed"
+)
+
+type UpdateStatusRequest struct {
+	QuizID string `json:"quizId"`
+	Status Status `json:"status"`
+}
+
+func (r *repository) UpdateStatus(ctx context.Context, data UpdateStatusRequest) error {
+	sql := `
+	UPDATE quizzes 
+	SET status = ($1)
+	WHERE quiz_id = ($2)
+	`
+
+	if _, err := r.querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+		return err
+	}
+
+	return nil
 }
