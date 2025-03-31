@@ -22,7 +22,6 @@ type Repository interface {
 		ctx context.Context,
 		data GetWrittenAnswerRequest,
 	) (GetWrittenAnswerResponse, error)
-	CreateSelectedAnswer(ctx context.Context, data CreateSelectedAnswerRequest) error
 	CreateWrittenAnswer(ctx context.Context, data CreateWrittenAnswerRequest) error
 
 	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error)
