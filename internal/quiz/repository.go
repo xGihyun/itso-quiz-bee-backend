@@ -17,7 +17,6 @@ type Repository interface {
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
 	setCurrentQuestion(ctx context.Context, data setCurrentQuestionRequest) (Question, error)
-	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)
 
 	GetWrittenAnswer(
 		ctx context.Context,
