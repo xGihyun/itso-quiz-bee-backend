@@ -35,6 +35,41 @@ func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Que
 	return question, nil
 }
 
+type setCurrentQuestionRequest struct {
+	QuizID         string `json:"quizId"`
+	QuizQuestionID string `json:"quizQuestionId"`
+}
+
+func (r *repository) setCurrentQuestion(
+	ctx context.Context,
+	data setCurrentQuestionRequest,
+) (Question, error) {
+	sql := `
+	SELECT quiz_question_id, content, points, order_number, duration
+	FROM quiz_questions
+	WHERE quiz_question_id = ($1)
+	`
+
+	var question Question
+	row := r.querier.QueryRow(ctx, sql, data.QuizQuestionID)
+	if err := row.Scan(
+		&question.QuizQuestionID,
+		&question.Content,
+		&question.Points,
+		&question.OrderNumber,
+		&question.Duration,
+	); err != nil {
+		return Question{}, err
+	}
+
+	questionKey := fmt.Sprintf("quiz:%s:current_question", data.QuizID)
+	if err := r.redisClient.Set(ctx, questionKey, data.QuizQuestionID, 0).Err(); err != nil {
+		return Question{}, err
+	}
+
+	return question, nil
+}
+
 type GetNextQuestionRequest struct {
 	QuizID      string `json:"quizId"`
 	OrderNumber int16  `json:"orderNumber"`

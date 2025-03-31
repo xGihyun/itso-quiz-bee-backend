@@ -68,17 +68,18 @@ func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Resp
 		}, nil
 
 	case updateQuestion:
-		var data UpdatePlayersQuestionRequest
+		var data setCurrentQuestionRequest
 		if err := json.Unmarshal(request.Data, &data); err != nil {
 			return ws.Response{}, err
 		}
 
-		if err := s.repo.UpdatePlayersQuestion(ctx, data); err != nil {
+		question, err := s.repo.setCurrentQuestion(ctx, data)
+		if err != nil {
 			return ws.Response{}, err
 		}
 
 		// s.timerManager.StopTimer(data.QuizID)
-		if data.Question.Duration != nil {
+		if question.Duration != nil {
 			s.timerManager.StartTimer(ctx, data.QuizID, *data.Question.Duration)
 		}
 

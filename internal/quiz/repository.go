@@ -16,6 +16,7 @@ type Repository interface {
 	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 
 	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
+	setCurrentQuestion(ctx context.Context, data setCurrentQuestionRequest) (Question, error)
 	GetNextQuestion(ctx context.Context, data GetNextQuestionRequest) (Question, error)
 
 	GetWrittenAnswer(
@@ -28,7 +29,6 @@ type Repository interface {
 	AddPlayer(ctx context.Context, data AddPlayerRequest) (user.UserResponse, error)
 	GetPlayer(ctx context.Context, data GetPlayerRequest) (Player, error)
 	GetPlayers(ctx context.Context, quizID string) ([]Player, error)
-	UpdatePlayersQuestion(ctx context.Context, data UpdatePlayersQuestionRequest) error
 }
 
 type repository struct {
