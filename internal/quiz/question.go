@@ -2,6 +2,8 @@ package quiz
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 )
 
 type Question struct {
@@ -18,45 +20,15 @@ type Answer struct {
 	Content      string `json:"content"`
 }
 
-// NOTE:
-// This assumes that all players are on the same question.
-// This is used to persist the current question during an ongoing quiz in case
-// the user refreshes the page.
-
-// TODO: Store the current question on Redis instead, rather than checking for
-// a single players' current question. This enables a single source of truth
-// rather than this messy solution.
 func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
-	sql := `
-	SELECT 
-		jsonb_build_object(
-			'quiz_question_id', quiz_questions.quiz_question_id,
-			'content', quiz_questions.content,
-			'points', quiz_questions.points,
-			'order_number', quiz_questions.order_number,
-			'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
-			'answers', (
-				SELECT jsonb_agg(
-					jsonb_build_object(
-						'quiz_answer_id', quiz_answers.quiz_answer_id,
-						'content', quiz_answers.content,
-						'is_correct', quiz_answers.is_correct
-					)
-				)
-				FROM quiz_answers
-				WHERE quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
-			)
-		) AS question
-	FROM quiz_questions
-	JOIN players_in_quizzes ON players_in_quizzes.quiz_question_id = quiz_questions.quiz_question_id
-	WHERE players_in_quizzes.quiz_id = ($1)
-	`
-
-	row := r.querier.QueryRow(ctx, sql, quizID)
+	questionKey := fmt.Sprintf("quiz:%s:current_question", quizID)
+	data, err := r.redisClient.Get(ctx, questionKey).Result()
+	if err != nil {
+		return Question{}, err
+	}
 
 	var question Question
-
-	if err := row.Scan(&question); err != nil {
+	if err := json.Unmarshal([]byte(data), &question); err != nil {
 		return Question{}, err
 	}
 

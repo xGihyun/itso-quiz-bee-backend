@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/redis/go-redis/v9"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
 )
 
@@ -188,16 +189,16 @@ func (s *Service) GetCurrentQuestion(w http.ResponseWriter, r *http.Request) api
 
 	question, err := s.repo.GetCurrentQuestion(ctx, quizID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
+		if errors.Is(err, redis.Nil) {
 			return api.Response{
-				Error:   err,
+				Error:   fmt.Errorf("get quiz current question: %w", err),
 				Code:    http.StatusNotFound,
 				Message: "Quiz current question not found.",
 			}
 		}
 
 		return api.Response{
-			Error:   err,
+			Error:   fmt.Errorf("get quiz current question: %w", err),
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to fetch quiz current question.",
 		}

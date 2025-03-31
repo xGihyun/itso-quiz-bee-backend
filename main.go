@@ -77,7 +77,7 @@ func main() {
 	go wsPool.Start()
 
 	userRepo := user.NewRepository(pool, redisClient)
-	quizRepo := quiz.NewRepository(pool)
+	quizRepo := quiz.NewRepository(pool, redisClient)
 	quizSocket := quiz.NewSocketService(quizRepo, wsPool)
 	wsHandlers := map[string]ws.EventHandler{"quiz": quizSocket}
 	app := &app{
@@ -108,9 +108,6 @@ func main() {
 		"GET /api/quizzes/{quizId}/players/{playerId}",
 		api.HTTPHandler(app.quiz.GetPlayer),
 	)
-
-	// TODO:
-	// Hide the `answers[]` from players
 	router.Handle(
 		"GET /api/quizzes/{quiz_id}/current-question",
 		api.HTTPHandler(app.quiz.GetCurrentQuestion),

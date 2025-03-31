@@ -3,6 +3,7 @@ package quiz
 import (
 	"context"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
@@ -31,11 +32,13 @@ type Repository interface {
 }
 
 type repository struct {
-	querier database.Querier
+	querier     database.Querier
+	redisClient *redis.Client
 }
 
-func NewRepository(q database.Querier) Repository {
+func NewRepository(q database.Querier, redisClient *redis.Client) Repository {
 	return &repository{
-		querier: q,
+		querier:     q,
+		redisClient: redisClient,
 	}
 }
