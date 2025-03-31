@@ -80,7 +80,7 @@ func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Resp
 
 		// s.timerManager.StopTimer(data.QuizID)
 		if question.Duration != nil {
-			s.timerManager.StartTimer(ctx, data.QuizID, *data.Question.Duration)
+			s.timerManager.StartTimer(ctx, data.QuizID, *question.Duration)
 		}
 
 		return ws.Response{
