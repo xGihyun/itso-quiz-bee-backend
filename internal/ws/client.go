@@ -36,7 +36,6 @@ const (
 type client struct {
 	hub  *Hub
 	conn *websocket.Conn
-	id   string
 	role user.Role
 
 	handlers map[string]EventHandler

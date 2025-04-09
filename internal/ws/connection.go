@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
@@ -47,7 +46,6 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	client := &client{
 		conn:     conn,
 		hub:      s.hub,
-		id:       uuid.NewString(),
 		role:     claims.Role,
 		handlers: s.handlers,
 	}
