@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -15,8 +16,8 @@ import (
 type Event string
 
 type Request struct {
-	Event Event           `json:"event"`
-	Data  json.RawMessage `json:"data"`
+	Event Event  `json:"event"`
+	Data  []byte `json:"data"`
 }
 
 type Response struct {
@@ -37,11 +38,12 @@ type client struct {
 	hub  *Hub
 	conn *websocket.Conn
 	role user.Role
+	send chan Response
 
 	handlers map[string]EventHandler
 }
 
-func (c *client) Read(ctx context.Context) error {
+func (c *client) readPump(ctx context.Context) {
 	defer func() {
 		c.hub.unregister <- c
 		c.conn.Close()
@@ -50,12 +52,14 @@ func (c *client) Read(ctx context.Context) error {
 	for {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
-			return err
+			log.Error().Err(err).Send()
+			continue
 		}
 
 		var request Request
 		if err := json.Unmarshal(data, &request); err != nil {
-			return err
+			log.Error().Err(err).Send()
+			continue
 		}
 
 		s := strings.Split(":", string(request.Event))
@@ -63,15 +67,34 @@ func (c *client) Read(ctx context.Context) error {
 
 		handler, ok := c.handlers[key]
 		if !ok {
-			log.Warn().Msg(fmt.Sprintf("no handler found for event: %s", request.Event))
+			log.Warn().Msg("handler not found for: " + key)
 			continue
 		}
 
 		response, err := handler.Handle(ctx, request)
 		if err != nil {
-			return err
+			log.Error().Err(err).Send()
+			continue
 		}
 
-		c.hub.Broadcast <- response
+		c.send <- response
+	}
+}
+
+func (c *client) writePump() {
+	defer c.conn.Close()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			if !ok {
+				log.Error().Msg("hub closed channel")
+				return
+			}
+
+			if err := c.conn.WriteJSON(message); err != nil {
+				slog.Error(fmt.Errorf("websocket write json: %w", err).Error())
+			}
+		}
 	}
 }

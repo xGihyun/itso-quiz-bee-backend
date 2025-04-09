@@ -52,9 +52,8 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	s.hub.register <- client
 
-	if err := client.Read(ctx); err != nil {
-		log.Error().Err(err).Send()
-	}
+	go client.writePump()
+	client.readPump(ctx)
 }
 
 type userClaims struct {
