@@ -11,14 +11,14 @@ type EventHandler interface {
 }
 
 type Service struct {
-	pool     *Pool
+	hub      *Hub
 	userRepo user.Repository
 	handlers map[string]EventHandler
 }
 
-func NewService(pool *Pool, userRepo user.Repository, handlers map[string]EventHandler) *Service {
+func NewService(hub *Hub, userRepo user.Repository, handlers map[string]EventHandler) *Service {
 	return &Service{
-		pool:     pool,
+		hub:      hub,
 		userRepo: userRepo,
 		handlers: handlers,
 	}

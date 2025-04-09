@@ -32,7 +32,7 @@ const (
 )
 
 type client struct {
-	pool *Pool
+	hub  *Hub
 	conn *websocket.Conn
 	id   string
 	role user.Role
@@ -42,7 +42,7 @@ type client struct {
 
 func (c *client) Read(ctx context.Context) error {
 	defer func() {
-		c.pool.Unregister <- c
+		c.hub.unregister <- c
 		c.conn.Close()
 	}()
 
@@ -71,6 +71,6 @@ func (c *client) Read(ctx context.Context) error {
 			return err
 		}
 
-		c.pool.Broadcast <- response
+		c.hub.Broadcast <- response
 	}
 }

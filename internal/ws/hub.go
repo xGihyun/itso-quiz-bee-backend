@@ -7,56 +7,56 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
-type Pool struct {
-	Clients    map[*client]bool
-	Register   chan *client
-	Unregister chan *client
+type Hub struct {
+	clients    map[*client]bool
+	register   chan *client
+	unregister chan *client
 	Broadcast  chan Response
 }
 
-func NewPool() *Pool {
-	return &Pool{
-		Clients:    make(map[*client]bool),
-		Register:   make(chan *client),
-		Unregister: make(chan *client),
+func NewHub() *Hub {
+	return &Hub{
+		clients:    make(map[*client]bool),
+		register:   make(chan *client),
+		unregister: make(chan *client),
 		Broadcast:  make(chan Response),
 	}
 }
 
-func (p *Pool) Start() {
+func (h *Hub) Start() {
 	log.Info().Msg("Starting WebSocket pool...")
 
 	for {
 		select {
-		case client := <-p.Register:
-			p.Clients[client] = true
+		case client := <-h.register:
+			h.clients[client] = true
 
 			log.Info().Msg("User has connected.")
-			log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(p.Clients)))
+			log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(h.clients)))
 
-		case client := <-p.Unregister:
-			if _, ok := p.Clients[client]; ok {
-				delete(p.Clients, client)
+		case client := <-h.unregister:
+			if _, ok := h.clients[client]; ok {
+				delete(h.clients, client)
 
-				for client := range p.Clients {
+				for client := range h.clients {
 					client.conn.WriteJSON(Request{Event: "client:leave"})
 				}
 
 				log.Info().Msg("User has disconnected.")
-				log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(p.Clients)))
+				log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(h.clients)))
 			}
 
-		case message := <-p.Broadcast:
+		case message := <-h.Broadcast:
 			switch message.Target {
 			case All:
-				for client := range p.Clients {
+				for client := range h.clients {
 					if err := client.conn.WriteJSON(message); err != nil {
 						log.Error().Err(err).Send()
 					}
 				}
 
 			case Admins:
-				for client := range p.Clients {
+				for client := range h.clients {
 					// NOTE: Potential import cycle
 					if client.role == user.Admin {
 						if err := client.conn.WriteJSON(message); err != nil {

@@ -22,10 +22,10 @@ type SocketService struct {
 	timerManager *TimerManager
 }
 
-func NewSocketService(repo Repository, wsPool *ws.Pool) *SocketService {
+func NewSocketService(repo Repository, wsHub *ws.Hub) *SocketService {
 	return &SocketService{
 		repo:         repo,
-		timerManager: NewTimerManager(wsPool),
+		timerManager: NewTimerManager(wsHub),
 	}
 }
 

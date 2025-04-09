@@ -46,13 +46,13 @@ func (t *Timer) Resume() {
 
 type TimerManager struct {
 	timers map[string]*Timer
-	wsPool *ws.Pool
+	wsHub *ws.Hub
 }
 
-func NewTimerManager(pool *ws.Pool) *TimerManager {
+func NewTimerManager(pool *ws.Hub) *TimerManager {
 	return &TimerManager{
 		timers: make(map[string]*Timer),
-		wsPool: pool,
+		wsHub: pool,
 	}
 }
 
@@ -115,7 +115,7 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 				Data:   tpResponse,
 			}
 
-			tm.wsPool.Broadcast <- response
+			tm.wsHub.Broadcast <- response
 
 			if timer.Duration <= 0 {
 				doneResponse := ws.Response{
@@ -124,7 +124,7 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 					Data:   quizID,
 				}
 
-				tm.wsPool.Broadcast <- doneResponse
+				tm.wsHub.Broadcast <- doneResponse
 
 				tm.StopTimer(quizID)
                 return

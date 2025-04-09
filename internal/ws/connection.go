@@ -42,13 +42,13 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	client := &client{
 		conn:     conn,
-		pool:     s.pool,
+		hub:     s.hub,
 		id:       uuid.NewString(),
 		role:     user.Role,
         handlers: s.handlers,
 	}
 
-	s.pool.Register <- client
+	s.hub.register <- client
 
 	if err := client.Read(ctx); err != nil {
 		log.Error().Err(err).Send()

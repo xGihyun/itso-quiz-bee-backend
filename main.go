@@ -73,17 +73,17 @@ func main() {
 	}
 	defer pool.Close()
 
-	wsPool := ws.NewPool()
-	go wsPool.Start()
+	wsHub := ws.NewHub()
+	go wsHub.Start()
 
 	userRepo := user.NewRepository(pool, redisClient)
 	quizRepo := quiz.NewRepository(pool, redisClient)
-	quizSocket := quiz.NewSocketService(quizRepo, wsPool)
+	quizSocket := quiz.NewSocketService(quizRepo, wsHub)
 	wsHandlers := map[string]ws.EventHandler{"quiz": quizSocket}
 	app := &app{
 		user: *user.NewService(userRepo),
 		quiz: *quiz.NewService(quizRepo),
-		ws:   *ws.NewService(wsPool, userRepo, wsHandlers),
+		ws:   *ws.NewService(wsHub, userRepo, wsHandlers),
 	}
 
 	router := http.NewServeMux()
