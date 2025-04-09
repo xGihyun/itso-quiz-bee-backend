@@ -1,11 +1,14 @@
 package ws
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 var upgrader = websocket.Upgrader{
@@ -33,8 +36,9 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userId := r.URL.Query().Get("userId")
-	user, err := s.userRepo.GetByID(ctx, userId)
+	token := r.URL.Query().Get("token")
+
+	claims, err := s.verifyToken(token)
 	if err != nil {
 		log.Error().Err(err).Send()
 		return
@@ -42,10 +46,10 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	client := &client{
 		conn:     conn,
-		hub:     s.hub,
+		hub:      s.hub,
 		id:       uuid.NewString(),
-		role:     user.Role,
-        handlers: s.handlers,
+		role:     claims.Role,
+		handlers: s.handlers,
 	}
 
 	s.hub.register <- client
@@ -53,4 +57,31 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	if err := client.Read(ctx); err != nil {
 		log.Error().Err(err).Send()
 	}
+}
+
+type userClaims struct {
+	jwt.RegisteredClaims
+
+	UserID string    `json:"userId"`
+	Role   user.Role `json:"role"`
+}
+
+func (s *Service) verifyToken(tokenString string) (*userClaims, error) {
+	claims := userClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&claims,
+		func(t *jwt.Token) (any, error) {
+			return s.jwtSecret, nil
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	return &claims, nil
 }

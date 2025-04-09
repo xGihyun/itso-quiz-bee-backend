@@ -24,8 +24,6 @@ func NewHub() *Hub {
 }
 
 func (h *Hub) Start() {
-	log.Info().Msg("Starting WebSocket pool...")
-
 	for {
 		select {
 		case client := <-h.register:

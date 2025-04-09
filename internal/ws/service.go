@@ -2,8 +2,6 @@ package ws
 
 import (
 	"context"
-
-	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 type EventHandler interface {
@@ -11,15 +9,19 @@ type EventHandler interface {
 }
 
 type Service struct {
-	hub      *Hub
-	userRepo user.Repository
-	handlers map[string]EventHandler
+	hub       *Hub
+	handlers  map[string]EventHandler
+	jwtSecret string
 }
 
-func NewService(hub *Hub, userRepo user.Repository, handlers map[string]EventHandler) *Service {
+func NewService(
+	hub *Hub,
+	handlers map[string]EventHandler,
+	jwtSecret string,
+) *Service {
 	return &Service{
-		hub:      hub,
-		userRepo: userRepo,
-		handlers: handlers,
+		hub:       hub,
+		handlers:  handlers,
+		jwtSecret: jwtSecret,
 	}
 }

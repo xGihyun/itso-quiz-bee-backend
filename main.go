@@ -53,12 +53,15 @@ func main() {
 		log.Fatal().Msg("FRONTEND_PORT not found.")
 	}
 
+	jwtSecret, ok := os.LookupEnv("JWT_SECRET")
+	if !ok {
+		panic("JWT_SECRET not found.")
+	}
+
 	redisURL, ok := os.LookupEnv("REDIS_URL")
 	if !ok {
 		panic("REDIS_URL not found.")
 	}
-
-	ctx := context.Background()
 
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
@@ -67,6 +70,7 @@ func main() {
 
 	redisClient := redis.NewClient(opt)
 
+	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, dbUrl)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database.")
@@ -83,7 +87,7 @@ func main() {
 	app := &app{
 		user: *user.NewService(userRepo),
 		quiz: *quiz.NewService(quizRepo),
-		ws:   *ws.NewService(wsHub, userRepo, wsHandlers),
+		ws:   *ws.NewService(wsHub, wsHandlers, jwtSecret),
 	}
 
 	router := http.NewServeMux()
