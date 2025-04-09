@@ -97,7 +97,7 @@ func main() {
 	router.Handle("POST /api/sign-up", api.HTTPHandler(app.user.Create))
 
 	router.Handle("GET /api/users", api.HTTPHandler(app.user.GetAll))
-	router.Handle("GET /api/users/{user_id}", api.HTTPHandler(app.user.GetByID))
+	router.Handle("GET /api/users/{userId}", api.HTTPHandler(app.user.GetByID))
 	// router.HandleFunc("POST /users", app.user.Create)
 
 	router.Handle("GET /api/quizzes", api.HTTPHandler(app.quiz.ListBasicInfo))

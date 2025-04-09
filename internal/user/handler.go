@@ -37,7 +37,7 @@ func (s *Service) Create(w http.ResponseWriter, r *http.Request) api.Response {
 func (s *Service) GetByID(w http.ResponseWriter, r *http.Request) api.Response {
 	ctx := r.Context()
 
-	id := r.PathValue("user_id")
+	id := r.PathValue("userId")
 
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
