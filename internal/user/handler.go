@@ -1,7 +1,6 @@
 package user
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -92,7 +91,7 @@ type signInResponse struct {
 }
 
 func (s *Service) SignIn(w http.ResponseWriter, r *http.Request) api.Response {
-    ctx := r.Context()
+	ctx := r.Context()
 
 	var data signInRequest
 
@@ -143,7 +142,7 @@ type signOutRequest struct {
 }
 
 func (s *Service) SignOut(w http.ResponseWriter, r *http.Request) api.Response {
-    ctx := r.Context()
+	ctx := r.Context()
 
 	var data signOutRequest
 
@@ -171,7 +170,7 @@ func (s *Service) SignOut(w http.ResponseWriter, r *http.Request) api.Response {
 }
 
 func (s *Service) GetSession(w http.ResponseWriter, r *http.Request) api.Response {
-    ctx := r.Context()
+	ctx := r.Context()
 
 	token := r.URL.Query().Get("token")
 
