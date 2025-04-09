@@ -12,6 +12,8 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
+type Event string
+
 type Request struct {
 	Event Event           `json:"event"`
 	Data  json.RawMessage `json:"data"`
