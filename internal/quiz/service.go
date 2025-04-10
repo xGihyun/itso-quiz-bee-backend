@@ -108,7 +108,7 @@ func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Resp
 
 		return ws.Response{
 			Event:  request.Event,
-			Target: ws.All,
+			Target: ws.Admins,
 			Data:   data,
 		}, nil
 
@@ -134,7 +134,7 @@ func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Resp
 
 		return ws.Response{
 			Event:  request.Event,
-			Target: ws.All,
+			Target: ws.Admins,
 			Data:   player,
 		}, nil
 
