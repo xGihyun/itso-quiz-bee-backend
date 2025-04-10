@@ -76,7 +76,12 @@ func (c *client) readPump(ctx context.Context) {
 			continue
 		}
 
-		c.send <- response
+		switch response.Target {
+		case All:
+			c.send <- response
+		case Admins:
+			c.hub.sendToRole(user.Admin, response)
+		}
 	}
 }
 
