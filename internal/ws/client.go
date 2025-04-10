@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -93,7 +92,7 @@ func (c *client) writePump() {
 			}
 
 			if err := c.conn.WriteJSON(message); err != nil {
-				slog.Error(fmt.Errorf("websocket write json: %w", err).Error())
+				log.Error().Err(fmt.Errorf("websocket write json: %w", err)).Send()
 			}
 		}
 	}
