@@ -40,10 +40,6 @@ func (h *Hub) Start() {
 				delete(h.clientsByRole[client.role], client)
 				delete(h.clients, client)
 
-				for client := range h.clients {
-					client.conn.WriteJSON(Request{Event: "client:leave"})
-				}
-
 				log.Info().Msg("User has disconnected.")
 				log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(h.clients)))
 			}
