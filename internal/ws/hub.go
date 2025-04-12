@@ -47,10 +47,16 @@ func (h *Hub) Start() {
 	}
 }
 
-func (h *Hub) sendToRole(role user.Role, response Response) {
+func (h *Hub) SendToRole(role user.Role, response Response) {
 	clients := h.clientsByRole[role]
 
 	for client := range clients {
+		client.send <- response
+	}
+}
+
+func (h *Hub) SendToAll(response Response) {
+	for client := range h.clients {
 		client.send <- response
 	}
 }
