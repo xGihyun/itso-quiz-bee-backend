@@ -31,28 +31,29 @@ func (t *Timer) Pause() {
 	t.IsPaused = true
 }
 
-func (t *Timer) Resume() {
+func (t *Timer) Start() {
 	if !t.IsPaused {
 		return
 	}
 
-	if t.Ticker != nil {
-		t.Ticker.Reset(time.Second)
-		return
-	}
 	t.Ticker = time.NewTicker(time.Second)
+	t.IsPaused = false
+}
+
+func (t *Timer) Resume() {
+	t.Ticker.Reset(time.Second)
 	t.IsPaused = false
 }
 
 type TimerManager struct {
 	timers map[string]*Timer
-	wsHub *ws.Hub
+	hub  *ws.Hub
 }
 
-func NewTimerManager(pool *ws.Hub) *TimerManager {
+func NewTimerManager(hub *ws.Hub) *TimerManager {
 	return &TimerManager{
 		timers: make(map[string]*Timer),
-		wsHub: pool,
+		hub:  hub,
 	}
 }
 
@@ -63,7 +64,7 @@ func (tm *TimerManager) StartTimer(ctx context.Context, quizID string, duration 
 		tm.timers[quizID] = timer
 	}
 
-	timer.Resume()
+	timer.Start()
 	go tm.handleTimer(ctx, quizID)
 }
 
@@ -115,7 +116,7 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 				Data:   tpResponse,
 			}
 
-			tm.wsHub.Broadcast <- response
+			tm.hub.Broadcast <- response
 
 			if timer.Duration <= 0 {
 				doneResponse := ws.Response{
@@ -124,10 +125,10 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 					Data:   quizID,
 				}
 
-				tm.wsHub.Broadcast <- doneResponse
+				tm.hub.Broadcast <- doneResponse
 
 				tm.StopTimer(quizID)
-                return
+				return
 			}
 		}
 	}
