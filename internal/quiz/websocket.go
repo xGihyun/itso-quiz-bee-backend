@@ -68,9 +68,9 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 			return ws.Response{}, err
 		}
 
-		// s.timerManager.StopTimer(data.QuizID)
+		s.timerManager.StopTimer(data.QuizID)
 		if question.Duration != nil {
-			s.timerManager.StartTimer(ctx, data.QuizID, *question.Duration)
+			s.timerManager.StartTimer(data.QuizID, *question.Duration)
 		}
 
 		return ws.Response{
