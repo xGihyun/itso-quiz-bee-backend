@@ -7,13 +7,13 @@ import (
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
 
-type SocketService struct {
+type webSocketServer struct {
 	repo         Repository
 	timerManager *TimerManager
 }
 
-func NewSocketService(repo Repository, wsHub *ws.Hub) *SocketService {
-	return &SocketService{
+func NewWebSocketServer(repo Repository, wsHub *ws.Hub) *webSocketServer {
+	return &webSocketServer{
 		repo:         repo,
 		timerManager: NewTimerManager(wsHub),
 	}
@@ -33,7 +33,7 @@ const (
 	playerSubmitAnswer ws.Event = "quiz:player-submit-answer"
 )
 
-func (s *SocketService) Handle(ctx context.Context, request ws.Request) (ws.Response, error) {
+func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Response, error) {
 	switch request.Event {
 	case updateStatus:
 		var data UpdateStatusRequest

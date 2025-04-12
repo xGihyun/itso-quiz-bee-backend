@@ -82,8 +82,8 @@ func main() {
 
 	userRepo := user.NewRepository(pool, redisClient)
 	quizRepo := quiz.NewRepository(pool, redisClient)
-	quizSocket := quiz.NewSocketService(quizRepo, wsHub)
-	wsHandlers := map[string]ws.EventHandler{"quiz": quizSocket}
+	quizWs := quiz.NewWebSocketServer(quizRepo, wsHub)
+	wsHandlers := map[string]ws.EventHandler{"quiz": quizWs}
 	app := &app{
 		user: *user.NewService(userRepo),
 		quiz: *quiz.NewService(quizRepo),
