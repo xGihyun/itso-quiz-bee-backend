@@ -110,8 +110,7 @@ func (tm *TimerManager) handleTimer(quizID string) {
 				Target: ws.All,
 				Data:   quizID,
 			}
-
-			tm.hub.Broadcast <- response
+			tm.hub.SendToAll(response)
 			return
 
 		case <-timer.Ticker.C:
@@ -126,8 +125,7 @@ func (tm *TimerManager) handleTimer(quizID string) {
 				Target: ws.All,
 				Data:   tpResponse,
 			}
-
-			tm.hub.Broadcast <- response
+			tm.hub.SendToAll(response)
 
 			if timer.Duration <= 0 {
 				tm.StopTimer(quizID)
