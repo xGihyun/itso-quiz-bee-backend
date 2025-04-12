@@ -11,6 +11,7 @@ type Timer struct {
 	Ticker   *time.Ticker
 	Duration int // seconds
 	IsPaused bool
+	done     chan bool
 }
 
 func NewTimer(duration int) *Timer {
@@ -18,12 +19,14 @@ func NewTimer(duration int) *Timer {
 		Ticker:   time.NewTicker(time.Second),
 		Duration: duration,
 		IsPaused: false,
+		done:     make(chan bool),
 	}
 }
 
 func (t *Timer) Stop() {
 	t.Ticker.Stop()
 	t.IsPaused = false
+	t.done <- true
 }
 
 func (t *Timer) Pause() {
@@ -47,17 +50,17 @@ func (t *Timer) Resume() {
 
 type TimerManager struct {
 	timers map[string]*Timer
-	hub  *ws.Hub
+	hub    *ws.Hub
 }
 
 func NewTimerManager(hub *ws.Hub) *TimerManager {
 	return &TimerManager{
 		timers: make(map[string]*Timer),
-		hub:  hub,
+		hub:    hub,
 	}
 }
 
-func (tm *TimerManager) StartTimer(ctx context.Context, quizID string, duration int) {
+func (tm *TimerManager) StartTimer(quizID string, duration int) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
 		timer = NewTimer(duration)
@@ -65,7 +68,7 @@ func (tm *TimerManager) StartTimer(ctx context.Context, quizID string, duration 
 	}
 
 	timer.Start()
-	go tm.handleTimer(ctx, quizID)
+	go tm.handleTimer(quizID)
 }
 
 func (tm *TimerManager) StopTimer(quizID string) {
@@ -84,7 +87,7 @@ func (tm *TimerManager) PauseTimer(quizID string) {
 func (tm *TimerManager) ResumeTimer(ctx context.Context, quizID string) {
 	if timer, exists := tm.timers[quizID]; exists {
 		timer.Resume()
-		go tm.handleTimer(ctx, quizID)
+		go tm.handleTimer(quizID)
 	}
 }
 
@@ -93,7 +96,7 @@ type timerPassResponse struct {
 	Duration int    `json:"duration"`
 }
 
-func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
+func (tm *TimerManager) handleTimer(quizID string) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
 		return
@@ -101,8 +104,16 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 
 	for {
 		select {
-		case <-ctx.Done():
+		case <-timer.done:
+			response := ws.Response{
+				Event:  timerDone,
+				Target: ws.All,
+				Data:   quizID,
+			}
+
+			tm.hub.Broadcast <- response
 			return
+
 		case <-timer.Ticker.C:
 			timer.Duration -= 1
 
@@ -119,14 +130,6 @@ func (tm *TimerManager) handleTimer(ctx context.Context, quizID string) {
 			tm.hub.Broadcast <- response
 
 			if timer.Duration <= 0 {
-				doneResponse := ws.Response{
-					Event:  timerDone,
-					Target: ws.All,
-					Data:   quizID,
-				}
-
-				tm.hub.Broadcast <- doneResponse
-
 				tm.StopTimer(quizID)
 				return
 			}
