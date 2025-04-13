@@ -25,8 +25,9 @@ const (
 	updateQuestion  ws.Event = "quiz:update-question"
 	showLeaderboard ws.Event = "quiz:show-leaderboard"
 
-	timerPass ws.Event = "quiz:timer-pass"
-	timerDone ws.Event = "quiz:timer-done"
+	timerStart ws.Event = "quiz:timer-start"
+	timerPass  ws.Event = "quiz:timer-pass"
+	timerDone  ws.Event = "quiz:timer-done"
 
 	playerJoin         ws.Event = "quiz:player-join"
 	playerLeave        ws.Event = "quiz:player-leave"
