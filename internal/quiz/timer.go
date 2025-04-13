@@ -3,6 +3,7 @@ package quiz
 import (
 	"time"
 
+	"github.com/rs/zerolog/log"
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
 
@@ -22,6 +23,7 @@ type timer struct {
 	interval interval
 	duration time.Duration
 	isPaused bool
+	started  chan bool
 	done     chan bool
 }
 
@@ -29,12 +31,15 @@ func NewTimer(duration time.Duration) *timer {
 	return &timer{
 		isPaused: false,
 		duration: duration,
+		started:  make(chan bool),
 		done:     make(chan bool),
 	}
 }
 
 func (t *timer) start() interval {
 	interv := NewInterval(t.duration)
+	t.interval = interv
+	t.started <- true
 	time.AfterFunc(t.duration, func() {
 		t.done <- true
 	})
@@ -69,16 +74,24 @@ type timerPassResponse struct {
 func (tm *timerManager) handleTimer(quizID string) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
+		log.Error().Msg("timer not found")
 		return
 	}
 
 	for {
 		select {
+		case <-timer.started:
+			response := ws.Response{
+				Event:  timerStart,
+				Target: ws.All,
+				Data:   timer.interval,
+			}
+			tm.hub.SendToAll(response)
+
 		case <-timer.done:
 			response := ws.Response{
 				Event:  timerDone,
 				Target: ws.All,
-				Data:   quizID,
 			}
 			tm.hub.SendToAll(response)
 			return
