@@ -3,13 +3,14 @@ package quiz
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
 
 type webSocketServer struct {
 	repo         Repository
-	timerManager *TimerManager
+	timerManager *timerManager
 }
 
 func NewWebSocketServer(repo Repository, wsHub *ws.Hub) *webSocketServer {
@@ -45,12 +46,6 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 			return ws.Response{}, err
 		}
 
-		if data.Status == Paused {
-			s.timerManager.PauseTimer(data.QuizID)
-		} else if data.Status == Started {
-			s.timerManager.ResumeTimer(ctx, data.QuizID)
-		}
-
 		return ws.Response{
 			Event:  request.Event,
 			Target: ws.All,
@@ -68,9 +63,11 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 			return ws.Response{}, err
 		}
 
-		s.timerManager.StopTimer(data.QuizID)
 		if question.Duration != nil {
-			s.timerManager.StartTimer(data.QuizID, *question.Duration)
+			fmt.Println("Starting timer")
+			s.timerManager.startTimer(data.QuizID, *question.Duration)
+			fmt.Println("Started timer")
+			go s.timerManager.handleTimer(data.QuizID)
 		}
 
 		return ws.Response{

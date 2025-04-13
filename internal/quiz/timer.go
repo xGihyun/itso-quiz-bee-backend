@@ -1,94 +1,54 @@
 package quiz
 
 import (
-	"context"
 	"time"
 
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
 
-type Timer struct {
-	Ticker   *time.Ticker
-	Duration int // seconds
-	IsPaused bool
+type timer struct {
+	startAt  time.Time
+	endAt    time.Time
+	duration int // seconds
+	isPaused bool
 	done     chan bool
 }
 
-func NewTimer(duration int) *Timer {
-	return &Timer{
-		Ticker:   time.NewTicker(time.Second),
-		Duration: duration,
-		IsPaused: false,
+func NewTimer(duration int) *timer {
+	return &timer{
+		startAt:  time.Now(),
+		endAt:    time.Now().Add(time.Second * time.Duration(duration)),
+		isPaused: false,
+		duration: duration,
 		done:     make(chan bool),
 	}
 }
 
-func (t *Timer) Stop() {
-	t.Ticker.Stop()
-	t.IsPaused = false
-	t.done <- true
+func (t *timer) start() {
+	duration := time.Second * time.Duration(t.duration)
+	afterTimer := time.AfterFunc(duration, func() {
+		t.done <- true
+	})
+	defer afterTimer.Stop()
 }
 
-func (t *Timer) Pause() {
-	t.Ticker.Stop()
-	t.IsPaused = true
-}
-
-func (t *Timer) Start() {
-	if !t.IsPaused {
-		return
-	}
-
-	t.Ticker = time.NewTicker(time.Second)
-	t.IsPaused = false
-}
-
-func (t *Timer) Resume() {
-	t.Ticker.Reset(time.Second)
-	t.IsPaused = false
-}
-
-type TimerManager struct {
-	timers map[string]*Timer
+type timerManager struct {
+	timers map[string]*timer
 	hub    *ws.Hub
 }
 
-func NewTimerManager(hub *ws.Hub) *TimerManager {
-	return &TimerManager{
-		timers: make(map[string]*Timer),
+func NewTimerManager(hub *ws.Hub) *timerManager {
+	return &timerManager{
+		timers: make(map[string]*timer),
 		hub:    hub,
 	}
 }
 
-func (tm *TimerManager) StartTimer(quizID string, duration int) {
-	timer, exists := tm.timers[quizID]
-	if !exists {
-		timer = NewTimer(duration)
-		tm.timers[quizID] = timer
-	}
+func (tm *timerManager) startTimer(quizID string, duration int) {
+	timer := NewTimer(duration)
+	tm.timers[quizID] = timer
 
-	timer.Start()
-	go tm.handleTimer(quizID)
-}
-
-func (tm *TimerManager) StopTimer(quizID string) {
-	if timer, exists := tm.timers[quizID]; exists {
-		timer.Stop()
-		delete(tm.timers, quizID)
-	}
-}
-
-func (tm *TimerManager) PauseTimer(quizID string) {
-	if timer, exists := tm.timers[quizID]; exists {
-		timer.Pause()
-	}
-}
-
-func (tm *TimerManager) ResumeTimer(ctx context.Context, quizID string) {
-	if timer, exists := tm.timers[quizID]; exists {
-		timer.Resume()
-		go tm.handleTimer(quizID)
-	}
+	timer.start()
 }
 
 type timerPassResponse struct {
@@ -96,7 +56,7 @@ type timerPassResponse struct {
 	Duration int    `json:"duration"`
 }
 
-func (tm *TimerManager) handleTimer(quizID string) {
+func (tm *timerManager) handleTimer(quizID string) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
 		return
@@ -112,25 +72,6 @@ func (tm *TimerManager) handleTimer(quizID string) {
 			}
 			tm.hub.SendToAll(response)
 			return
-
-		case <-timer.Ticker.C:
-			timer.Duration -= 1
-
-			tpResponse := timerPassResponse{
-				QuizID:   quizID,
-				Duration: timer.Duration,
-			}
-			response := ws.Response{
-				Event:  timerPass,
-				Target: ws.All,
-				Data:   tpResponse,
-			}
-			tm.hub.SendToAll(response)
-
-			if timer.Duration <= 0 {
-				tm.StopTimer(quizID)
-				return
-			}
 		}
 	}
 }
