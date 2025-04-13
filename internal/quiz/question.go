@@ -63,7 +63,7 @@ func (r *repository) setCurrentQuestion(
 	}
 
 	questionKey := fmt.Sprintf("quiz:%s:current_question", data.QuizID)
-	if err := r.redisClient.Set(ctx, questionKey, data.QuizQuestionID, 0).Err(); err != nil {
+	if err := r.redisClient.JSONSet(ctx, questionKey, "$", question).Err(); err != nil {
 		return Question{}, err
 	}
 
