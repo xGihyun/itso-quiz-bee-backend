@@ -73,7 +73,7 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 		return ws.Response{
 			Event:  request.Event,
 			Target: ws.All,
-			Data:   data,
+			Data:   question,
 		}, nil
 
 	case showLeaderboard:
