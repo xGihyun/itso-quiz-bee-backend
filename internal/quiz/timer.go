@@ -66,11 +66,6 @@ func (tm *timerManager) startTimer(quizID string, duration int) {
 	timer.start()
 }
 
-type timerPassResponse struct {
-	QuizID   string `json:"quizId"`
-	Duration int    `json:"duration"`
-}
-
 func (tm *timerManager) handleTimer(quizID string) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
