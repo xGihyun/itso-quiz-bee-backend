@@ -17,10 +17,10 @@ type createUserRequest struct {
 }
 
 type UserResponse struct {
-	UserID    string    `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
+	UserID    string    `json:"userId"`
+	CreatedAt time.Time `json:"createdAt"`
 	Username  string    `json:"username"`
 	Role      Role      `json:"role"`
 	Name      string    `json:"name"`
-	AvatarURL *string   `json:"avatar_url"`
+	AvatarURL *string   `json:"avatarUrl"`
 }
