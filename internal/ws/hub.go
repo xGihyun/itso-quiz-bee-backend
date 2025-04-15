@@ -26,9 +26,14 @@ func NewHub() *Hub {
 func (h *Hub) Start() {
 	for {
 		select {
-		case client := <-h.register:
-			h.clients[client] = true
-			h.clientsByRole[client.user.Role][client] = true
+		case c := <-h.register:
+			h.clients[c] = true
+
+			if h.clientsByRole[c.user.Role] == nil {
+				h.clientsByRole[c.user.Role] = make(map[*client]bool)
+			}
+
+			h.clientsByRole[c.user.Role][c] = true
 
 			log.Info().Msg("User has connected.")
 			log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(h.clients)))
