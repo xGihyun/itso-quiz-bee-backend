@@ -63,8 +63,8 @@ func (r *repository) AddPlayer(
 }
 
 type Player struct {
-	user.UserResponse
-	Result PlayerResult `json:"result"`
+	User   user.UserResponse `json:"user"`
+	Result PlayerResult      `json:"result"`
 }
 
 type PlayerResult struct {
@@ -145,14 +145,13 @@ func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Play
 	var player Player
 
 	row := r.querier.QueryRow(ctx, sql, data.QuizID, data.UserID)
-
 	if err := row.Scan(
-		&player.UserID,
-		&player.CreatedAt,
-		&player.Username,
-		&player.Role,
-		&player.Name,
-		&player.AvatarURL,
+		&player.User.UserID,
+		&player.User.CreatedAt,
+		&player.User.Username,
+		&player.User.Role,
+		&player.User.Name,
+		&player.User.AvatarURL,
 		&player.Result,
 	); err != nil {
 		return Player{}, err
