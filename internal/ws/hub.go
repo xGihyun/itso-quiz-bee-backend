@@ -12,7 +12,6 @@ type Hub struct {
 	clientsByRole map[user.Role]map[*client]bool
 	register      chan *client
 	unregister    chan *client
-	Broadcast     chan Response
 }
 
 func NewHub() *Hub {
@@ -21,7 +20,6 @@ func NewHub() *Hub {
 		clientsByRole: make(map[user.Role]map[*client]bool),
 		register:      make(chan *client),
 		unregister:    make(chan *client),
-		Broadcast:     make(chan Response),
 	}
 }
 
