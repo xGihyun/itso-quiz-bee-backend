@@ -15,8 +15,8 @@ import (
 type Event string
 
 type Request struct {
-	Event Event  `json:"event"`
-	Data  []byte `json:"data"`
+	Event Event           `json:"event"`
+	Data  json.RawMessage `json:"data"`
 }
 
 type Response struct {
@@ -52,7 +52,7 @@ func (c *client) readPump(ctx context.Context) {
 		_, data, err := c.conn.ReadMessage()
 		if err != nil {
 			log.Error().Err(err).Send()
-			continue
+			return
 		}
 
 		var request Request
