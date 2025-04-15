@@ -1,13 +1,10 @@
 package ws
 
 import (
-	"fmt"
 	"net/http"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 var upgrader = websocket.Upgrader{
@@ -37,7 +34,7 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	token := r.URL.Query().Get("token")
 
-	claims, err := s.verifyToken(token)
+	result, err := s.userRepo.ValidateSessionToken(ctx, token)
 	if err != nil {
 		log.Error().Err(err).Send()
 		return
@@ -46,7 +43,7 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	client := &client{
 		conn:     conn,
 		hub:      s.hub,
-		role:     claims.Role,
+		user:     result.User,
 		handlers: s.handlers,
 	}
 
@@ -54,31 +51,4 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	go client.writePump()
 	client.readPump(ctx)
-}
-
-type userClaims struct {
-	jwt.RegisteredClaims
-
-	UserID string    `json:"userId"`
-	Role   user.Role `json:"role"`
-}
-
-func (s *Service) verifyToken(tokenString string) (*userClaims, error) {
-	claims := userClaims{}
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&claims,
-		func(t *jwt.Token) (any, error) {
-			return s.jwtSecret, nil
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-
-	return &claims, nil
 }

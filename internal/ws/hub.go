@@ -28,14 +28,14 @@ func (h *Hub) Start() {
 		select {
 		case client := <-h.register:
 			h.clients[client] = true
-			h.clientsByRole[client.role][client] = true
+			h.clientsByRole[client.user.Role][client] = true
 
 			log.Info().Msg("User has connected.")
 			log.Info().Msg(fmt.Sprintf("Size of pool: %d", len(h.clients)))
 
 		case client := <-h.unregister:
 			if _, ok := h.clients[client]; ok {
-				delete(h.clientsByRole[client.role], client)
+				delete(h.clientsByRole[client.user.Role], client)
 				delete(h.clients, client)
 
 				log.Info().Msg("User has disconnected.")

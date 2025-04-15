@@ -174,7 +174,7 @@ func (s *Service) GetSession(w http.ResponseWriter, r *http.Request) api.Respons
 
 	token := r.URL.Query().Get("token")
 
-	result, err := s.repo.validateSessionToken(ctx, token)
+	result, err := s.repo.ValidateSessionToken(ctx, token)
 	if err != nil {
 		return api.Response{
 			Error:   fmt.Errorf("get session: %w", err),

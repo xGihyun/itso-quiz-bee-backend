@@ -53,11 +53,6 @@ func main() {
 		log.Fatal().Msg("FRONTEND_PORT not found.")
 	}
 
-	jwtSecret, ok := os.LookupEnv("JWT_SECRET")
-	if !ok {
-		panic("JWT_SECRET not found.")
-	}
-
 	redisURL, ok := os.LookupEnv("REDIS_URL")
 	if !ok {
 		panic("REDIS_URL not found.")
@@ -87,7 +82,7 @@ func main() {
 	app := &app{
 		user: *user.NewService(userRepo),
 		quiz: *quiz.NewService(quizRepo),
-		ws:   *ws.NewService(wsHub, wsHandlers, jwtSecret),
+		ws:   *ws.NewService(wsHub, wsHandlers, userRepo),
 	}
 
 	router := http.NewServeMux()

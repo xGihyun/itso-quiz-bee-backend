@@ -66,7 +66,7 @@ type sessionValidationResponse struct {
 	Session session      `json:"session"`
 }
 
-func (r *repository) validateSessionToken(
+func (r *repository) ValidateSessionToken(
 	ctx context.Context,
 	token string,
 ) (sessionValidationResponse, error) {

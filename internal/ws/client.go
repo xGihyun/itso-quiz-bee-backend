@@ -36,7 +36,7 @@ const (
 type client struct {
 	hub  *Hub
 	conn *websocket.Conn
-	role user.Role
+	user user.UserResponse
 	send chan Response
 
 	handlers map[string]EventHandler

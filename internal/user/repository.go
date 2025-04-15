@@ -17,7 +17,7 @@ type Repository interface {
 
 	generateSessionToken() (string, error)
 	createSession(ctx context.Context, token, userID string) (session, error)
-	validateSessionToken(ctx context.Context, token string) (sessionValidationResponse, error)
+	ValidateSessionToken(ctx context.Context, token string) (sessionValidationResponse, error)
 	invalidateSession(ctx context.Context, token, userID string) error
 }
 
