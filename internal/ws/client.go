@@ -61,7 +61,7 @@ func (c *client) readPump(ctx context.Context) {
 			continue
 		}
 
-		s := strings.Split(":", string(request.Event))
+		s := strings.Split(string(request.Event), ":")
 		key := s[0]
 
 		handler, ok := c.handlers[key]
