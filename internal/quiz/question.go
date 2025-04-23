@@ -45,7 +45,8 @@ func (r *repository) setCurrentQuestion(
 	data setCurrentQuestionRequest,
 ) (Question, error) {
 	sql := `
-	SELECT quiz_question_id, content, points, order_number, duration
+	SELECT quiz_question_id, content, points, order_number, 
+		extract(epoch FROM duration)::int as duration
 	FROM quiz_questions
 	WHERE quiz_question_id = ($1)
 	`
