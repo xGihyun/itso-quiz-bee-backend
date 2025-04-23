@@ -40,12 +40,7 @@ func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := &client{
-		conn:     conn,
-		hub:      s.hub,
-		user:     result.User,
-		handlers: s.handlers,
-	}
+	client := NewClient(conn, s.hub, result.User, s.handlers)
 
 	s.hub.register <- client
 

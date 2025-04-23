@@ -42,6 +42,21 @@ type client struct {
 	handlers map[string]EventHandler
 }
 
+func NewClient(
+	conn *websocket.Conn,
+	hub *Hub,
+	user user.UserResponse,
+	handlers map[string]EventHandler,
+) *client {
+	return &client{
+		conn:     conn,
+		hub:      hub,
+		user:     user,
+		handlers: handlers,
+		send:     make(chan Response),
+	}
+}
+
 func (c *client) readPump(ctx context.Context) {
 	defer func() {
 		c.hub.unregister <- c
