@@ -3,7 +3,6 @@ package quiz
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
@@ -64,10 +63,8 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 		}
 
 		if question.Duration != nil {
-			fmt.Println("Starting timer")
-			s.timerManager.startTimer(data.QuizID, *question.Duration)
-			fmt.Println("Started timer")
 			go s.timerManager.handleTimer(data.QuizID)
+			s.timerManager.startTimer(data.QuizID, 5)
 		}
 
 		return ws.Response{
