@@ -1,6 +1,7 @@
 package quiz
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -13,9 +14,10 @@ type interval struct {
 }
 
 func NewInterval(duration time.Duration) interval {
+	now := time.Now()
 	return interval{
-		startAt: time.Now(),
-		endAt:   time.Now().Add(time.Second * duration),
+		startAt: now,
+		endAt:   now.Add(duration),
 	}
 }
 
@@ -40,8 +42,10 @@ func (t *timer) start() interval {
 	interv := NewInterval(t.duration)
 	t.interval = interv
 	t.started <- true
+	fmt.Printf("Timer start %v\n", t.interval.startAt)
 	time.AfterFunc(t.duration, func() {
 		t.done <- true
+		fmt.Printf("Timer done %v\n", t.interval.endAt)
 	})
 	return interv
 }
