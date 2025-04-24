@@ -108,7 +108,7 @@ func main() {
 		api.HTTPHandler(app.quiz.GetPlayer),
 	)
 	router.Handle(
-		"GET /api/quizzes/{quiz_id}/current-question",
+		"GET /api/quizzes/{quizId}/current-question",
 		api.HTTPHandler(app.quiz.GetCurrentQuestion),
 	)
 
