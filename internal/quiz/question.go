@@ -22,7 +22,7 @@ type Answer struct {
 
 func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
 	questionKey := fmt.Sprintf("quiz:%s:current_question", quizID)
-	data, err := r.redisClient.Get(ctx, questionKey).Result()
+	data, err := r.redisClient.JSONGet(ctx, questionKey).Result()
 	if err != nil {
 		return Question{}, err
 	}
