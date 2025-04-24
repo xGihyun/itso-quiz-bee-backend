@@ -15,6 +15,18 @@ GET http://{{host}}/api/quizzes/{{quizId}}
 
 ### 
 
+# @name Get Players
+@quizId=b72e79d4-68a7-4416-907f-3b08f8bc1cf7
+GET http://{{host}}/api/quizzes/{{quizId}}/players
+
+### 
+
+# @name Get Current Question
+@quizId=b72e79d4-68a7-4416-907f-3b08f8bc1cf7
+GET http://{{host}}/api/quizzes/{{quizId}}/current-question
+
+### 
+
 # @name WebSocket
 @token=DNCAEYPNOCYBYUXQEMFBHY6AGAVMB54M
 WS ws://{{host}}/ws?token={{token}}
