@@ -67,6 +67,7 @@ func (tm *timerManager) startTimer(quizID string, duration int) {
 	timer := NewTimer(dur)
 	tm.timers[quizID] = timer
 
+	// TODO: Cancel the previous timer before starting a new one
 	timer.start()
 }
 
