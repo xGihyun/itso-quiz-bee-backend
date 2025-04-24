@@ -103,12 +103,10 @@ func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Play
 		SELECT
             jsonb_agg(
                 jsonb_build_object(
-                    'player_answer_id', player_written_answers.player_written_answer_id,
-                    'quiz_question_id', quiz_questions.quiz_question_id,
-                    'order_number', quiz_questions.order_number,
-                    'points', quiz_questions.points,
+                    'playerAnswerId', player_written_answers.player_written_answer_id,
                     'content', player_written_answers.content,
-                    'is_correct', LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content))
+                    'isCorrect', LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content)),
+                    'quizQuestionId', quiz_questions.quiz_question_id
                 )
             ) AS answers,
             player_written_answers.user_id
@@ -124,12 +122,14 @@ func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Play
 			player_written_answers.user_id
 	)
 	SELECT 
-		users.user_id,
-		users.created_at,
-		users.username,
-		users.role,
-		users.name,
-        users.avatar_url,
+		jsonb_build_object(
+			'userId', users.user_id,
+			'createdAt', users.created_at,
+			'username', users.username,
+			'role', users.role,
+			'name', users.name,
+			'avatarUrl', users.avatar_url
+		) AS user,
         jsonb_build_object(
             'score', COALESCE(SUM(player_scores.score), 0),
             'answers', COALESCE(player_answers.answers, '[]'::jsonb)
@@ -145,15 +145,7 @@ func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Play
 	var player Player
 
 	row := r.querier.QueryRow(ctx, sql, data.QuizID, data.UserID)
-	if err := row.Scan(
-		&player.User.UserID,
-		&player.User.CreatedAt,
-		&player.User.Username,
-		&player.User.Role,
-		&player.User.Name,
-		&player.User.AvatarURL,
-		&player.Result,
-	); err != nil {
+	if err := row.Scan(&player); err != nil {
 		return Player{}, err
 	}
 
@@ -186,12 +178,10 @@ func (r *repository) GetPlayers(ctx context.Context, quizID string) ([]Player, e
 		SELECT
             jsonb_agg(
                 jsonb_build_object(
-                    'player_answer_id', player_written_answers.player_written_answer_id,
-                    'quiz_question_id', quiz_questions.quiz_question_id,
-                    'order_number', quiz_questions.order_number,
-                    'points', quiz_questions.points,
+                    'playerAnswerId', player_written_answers.player_written_answer_id,
                     'content', player_written_answers.content,
-                    'is_correct', LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content))
+                    'isCorrect', LOWER(TRIM(quiz_answers.content)) = LOWER(TRIM(player_written_answers.content)),
+                    'quizQuestionId', quiz_questions.quiz_question_id
                 )
             ) AS answers,
             player_written_answers.user_id
@@ -207,12 +197,14 @@ func (r *repository) GetPlayers(ctx context.Context, quizID string) ([]Player, e
 			player_written_answers.user_id
 	)
 	SELECT 
-		users.user_id,
-		users.created_at,
-		users.username,
-		users.role,
-		users.name,
-        users.avatar_url,
+		jsonb_build_object(
+			'userId', users.user_id,
+			'createdAt', users.created_at,
+			'username', users.username,
+			'role', users.role,
+			'name', users.name,
+			'avatarUrl', users.avatar_url
+		) AS user,
         jsonb_build_object(
             'score', COALESCE(SUM(player_scores.score), 0),
             'answers', COALESCE(player_answers.answers, '[]'::jsonb)
@@ -226,12 +218,12 @@ func (r *repository) GetPlayers(ctx context.Context, quizID string) ([]Player, e
 
 	rows, err := r.querier.Query(ctx, sql, quizID)
 	if err != nil {
-		return []Player{}, err
+		return nil, err
 	}
 
 	players, err := pgx.CollectRows(rows, pgx.RowToStructByName[Player])
 	if err != nil {
-		return []Player{}, err
+		return nil, err
 	}
 
 	return players, nil
