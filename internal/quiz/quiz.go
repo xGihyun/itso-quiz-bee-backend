@@ -179,21 +179,21 @@ func createQuestion(
         quiz_id
     )
     VALUES (
-        $1, $2, $3, $4, $5, 
-            CASE WHEN $6::int IS NOT NULL 
-            THEN make_interval(secs => $6::int)
+        $1, $2, $3, $4, 
+            CASE WHEN $5::int IS NOT NULL 
+            THEN make_interval(secs => $5::int)
             ELSE NULL
         END,
-        $7
+        $6
     )
     ON CONFLICT(quiz_question_id)
     DO UPDATE SET
         content = ($2),
-        points = ($4),
-        order_number = ($5),
+        points = ($3),
+        order_number = ($4),
         duration = 
-            CASE WHEN $6::int IS NOT NULL 
-            THEN make_interval(secs => $6::int)
+            CASE WHEN $5::int IS NOT NULL 
+            THEN make_interval(secs => $5::int)
             ELSE NULL
             END
     RETURNING quiz_question_id
@@ -232,7 +232,7 @@ func createAnswer(
 ) error {
 	sql := `
 	INSERT INTO quiz_answers (quiz_answer_id, content, quiz_question_id)
-	VALUES ($1, $2, $3, $4)
+	VALUES ($1, $2, $3)
 	ON CONFLICT(quiz_answer_id)
 	DO UPDATE SET content = ($2)
     `
