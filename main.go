@@ -10,7 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"github.com/xGihyun/itso-quiz-bee/internal/api"
-	"github.com/xGihyun/itso-quiz-bee/internal/middleware"
+	_ "github.com/xGihyun/itso-quiz-bee/internal/middleware"
 	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
 	"github.com/xGihyun/itso-quiz-bee/internal/user"
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
@@ -121,7 +121,8 @@ func main() {
 
 	server := http.Server{
 		Addr:    host + ":" + port,
-		Handler: corsHandler.Handler(middleware.RequestLogger(router)),
+		// Handler: corsHandler.Handler(middleware.RequestLogger(router)),
+		Handler: corsHandler.Handler(router),
 	}
 
 	log.Info().Msg(fmt.Sprintf("Starting server on port: %s", port))
