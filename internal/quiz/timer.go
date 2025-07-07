@@ -9,15 +9,15 @@ import (
 )
 
 type interval struct {
-	startAt time.Time
-	endAt   time.Time
+	StartAt time.Time `json:"startAt"`
+	EndAt   time.Time `json:"endAt"`
 }
 
 func NewInterval(duration time.Duration) interval {
 	now := time.Now()
 	return interval{
-		startAt: now,
-		endAt:   now.Add(duration),
+		StartAt: now,
+		EndAt:   now.Add(duration),
 	}
 }
 
@@ -42,10 +42,10 @@ func (t *timer) start() interval {
 	interv := NewInterval(t.duration)
 	t.interval = interv
 	t.started <- true
-	fmt.Printf("Timer start %v\n", t.interval.startAt)
+	fmt.Printf("Timer start %v\n", t.interval.StartAt)
 	time.AfterFunc(t.duration, func() {
 		t.done <- true
-		fmt.Printf("Timer done %v\n", t.interval.endAt)
+		fmt.Printf("Timer done %v\n", t.interval.EndAt)
 	})
 	return interv
 }
@@ -81,6 +81,7 @@ func (tm *timerManager) handleTimer(quizID string) {
 	for {
 		select {
 		case <-timer.started:
+			fmt.Println(timer.interval)
 			response := ws.Response{
 				Event:  timerStart,
 				Target: ws.All,
