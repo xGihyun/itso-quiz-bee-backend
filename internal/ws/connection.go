@@ -25,12 +25,11 @@ func upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
 func (s *Service) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	conn, err := upgrade(w, r)
-	defer conn.Close()
-
 	if err != nil {
 		log.Error().Err(err).Send()
 		return
 	}
+	defer conn.Close()
 
 	token := r.URL.Query().Get("token")
 
