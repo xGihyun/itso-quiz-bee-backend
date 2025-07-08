@@ -29,6 +29,7 @@ type timer struct {
 	isPaused bool
 	started  chan bool
 	done     chan bool
+	current  *time.Timer
 }
 
 func NewTimer(duration time.Duration) *timer {
@@ -44,10 +45,8 @@ func (t *timer) start() interval {
 	interv := NewInterval(t.duration)
 	t.interval = interv
 	t.started <- true
-	fmt.Printf("Timer start %v\n", t.interval.StartAt)
-	time.AfterFunc(t.duration, func() {
+	t.current = time.AfterFunc(t.duration, func() {
 		t.done <- true
-		fmt.Printf("Timer done %v\n", t.interval.EndAt)
 	})
 	return interv
 }
@@ -69,9 +68,12 @@ func NewTimerManager(hub *ws.Hub, redisClient *redis.Client) *timerManager {
 func (tm *timerManager) startTimer(quizID string, duration int) {
 	dur := time.Second * time.Duration(duration)
 	timer := NewTimer(dur)
-	tm.timers[quizID] = timer
+	prevTimer := tm.timers[quizID]
+	if prevTimer != nil && prevTimer.current != nil {
+		prevTimer.current.Stop()
+	}
 
-	// TODO: Cancel the previous timer before starting a new one
+	tm.timers[quizID] = timer
 	timer.start()
 }
 
