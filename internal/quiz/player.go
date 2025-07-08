@@ -145,7 +145,7 @@ func (r *repository) GetPlayer(ctx context.Context, data GetPlayerRequest) (Play
 	var player Player
 
 	row := r.querier.QueryRow(ctx, sql, data.QuizID, data.UserID)
-	if err := row.Scan(&player); err != nil {
+	if err := row.Scan(&player.User, &player.Result); err != nil {
 		return Player{}, err
 	}
 
