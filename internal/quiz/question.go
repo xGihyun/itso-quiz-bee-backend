@@ -20,19 +20,43 @@ type Answer struct {
 	Content      string `json:"content"`
 }
 
-func (r *repository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
+type currentQuestion struct {
+	Question Question `json:"question"`
+	Interval interval `json:"interval,omitzero"`
+}
+
+func (r *repository) GetCurrentQuestion(
+	ctx context.Context,
+	quizID string,
+) (currentQuestion, error) {
 	questionKey := fmt.Sprintf("quiz:%s:current_question", quizID)
 	data, err := r.redisClient.JSONGet(ctx, questionKey).Result()
 	if err != nil {
-		return Question{}, err
+		return currentQuestion{}, err
 	}
 
 	var question Question
 	if err := json.Unmarshal([]byte(data), &question); err != nil {
-		return Question{}, err
+		return currentQuestion{}, err
 	}
 
-	return question, nil
+	intervalKey := fmt.Sprintf("quiz:%s:current_question_interval", quizID)
+	data, err = r.redisClient.JSONGet(ctx, intervalKey).Result()
+	if err != nil {
+		return currentQuestion{}, err
+	}
+
+	var interval interval
+	if err := json.Unmarshal([]byte(data), &interval); err != nil {
+		return currentQuestion{}, err
+	}
+
+	curQuestion := currentQuestion{
+		Question: question,
+		Interval: interval,
+	}
+
+	return curQuestion, nil
 }
 
 type setCurrentQuestionRequest struct {
@@ -43,7 +67,7 @@ type setCurrentQuestionRequest struct {
 func (r *repository) setCurrentQuestion(
 	ctx context.Context,
 	data setCurrentQuestionRequest,
-) (Question, error) {
+) (currentQuestion, error) {
 	sql := `
 	SELECT quiz_question_id, content, points, order_number, 
 		extract(epoch FROM duration)::int as duration
@@ -51,21 +75,21 @@ func (r *repository) setCurrentQuestion(
 	WHERE quiz_question_id = ($1)
 	`
 
-	var question Question
+	var question currentQuestion
 	row := r.querier.QueryRow(ctx, sql, data.QuizQuestionID)
 	if err := row.Scan(
-		&question.QuizQuestionID,
-		&question.Content,
-		&question.Points,
-		&question.OrderNumber,
-		&question.Duration,
+		&question.Question.QuizQuestionID,
+		&question.Question.Content,
+		&question.Question.Points,
+		&question.Question.OrderNumber,
+		&question.Question.Duration,
 	); err != nil {
-		return Question{}, err
+		return currentQuestion{}, err
 	}
 
 	questionKey := fmt.Sprintf("quiz:%s:current_question", data.QuizID)
 	if err := r.redisClient.JSONSet(ctx, questionKey, "$", question).Err(); err != nil {
-		return Question{}, err
+		return currentQuestion{}, err
 	}
 
 	return question, nil

@@ -15,8 +15,8 @@ type Repository interface {
 	Save(ctx context.Context, data Quiz) error
 	UpdateStatus(ctx context.Context, data UpdateStatusRequest) error
 
-	GetCurrentQuestion(ctx context.Context, quizID string) (Question, error)
-	setCurrentQuestion(ctx context.Context, data setCurrentQuestionRequest) (Question, error)
+	GetCurrentQuestion(ctx context.Context, quizID string) (currentQuestion, error)
+	setCurrentQuestion(ctx context.Context, data setCurrentQuestionRequest) (currentQuestion, error)
 
 	GetWrittenAnswer(
 		ctx context.Context,

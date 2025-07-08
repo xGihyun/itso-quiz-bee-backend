@@ -60,7 +60,7 @@ func (r *repository) GetWrittenAnswer(
 	WHERE user_id = ($1) AND quiz_question_id = ($2)
 	`
 
-	row := r.querier.QueryRow(ctx, sql, data.UserID, question.QuizQuestionID)
+	row := r.querier.QueryRow(ctx, sql, data.UserID, question.Question.QuizQuestionID)
 
 	var answer GetWrittenAnswerResponse
 

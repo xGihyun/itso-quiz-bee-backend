@@ -1,9 +1,11 @@
 package quiz
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
@@ -51,14 +53,16 @@ func (t *timer) start() interval {
 }
 
 type timerManager struct {
-	timers map[string]*timer
-	hub    *ws.Hub
+	timers      map[string]*timer
+	hub         *ws.Hub
+	redisClient *redis.Client
 }
 
-func NewTimerManager(hub *ws.Hub) *timerManager {
+func NewTimerManager(hub *ws.Hub, redisClient *redis.Client) *timerManager {
 	return &timerManager{
-		timers: make(map[string]*timer),
-		hub:    hub,
+		timers:      make(map[string]*timer),
+		hub:         hub,
+		redisClient: redisClient,
 	}
 }
 
@@ -71,7 +75,7 @@ func (tm *timerManager) startTimer(quizID string, duration int) {
 	timer.start()
 }
 
-func (tm *timerManager) handleTimer(quizID string) {
+func (tm *timerManager) handleTimer(ctx context.Context, quizID string) {
 	timer, exists := tm.timers[quizID]
 	if !exists {
 		log.Error().Msg("timer not found")
@@ -80,8 +84,13 @@ func (tm *timerManager) handleTimer(quizID string) {
 
 	for {
 		select {
+		// TODO: Store `timer.interval` on Redis to persist on client refresh
 		case <-timer.started:
-			fmt.Println(timer.interval)
+			intervalKey := fmt.Sprintf("quiz:%s:current_question_interval", quizID)
+			if err := tm.redisClient.JSONSet(ctx, intervalKey, "$", timer.interval).Err(); err != nil {
+				log.Error().Err(err).Send()
+				continue
+			}
 			response := ws.Response{
 				Event:  timerStart,
 				Target: ws.All,

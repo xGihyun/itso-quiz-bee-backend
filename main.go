@@ -77,7 +77,7 @@ func main() {
 
 	userRepo := user.NewRepository(pool, redisClient)
 	quizRepo := quiz.NewRepository(pool, redisClient)
-	quizWs := quiz.NewWebSocketServer(quizRepo, wsHub)
+	quizWs := quiz.NewWebSocketServer(quizRepo, wsHub, redisClient)
 	wsHandlers := map[string]ws.EventHandler{"quiz": quizWs}
 	app := &app{
 		user: *user.NewService(userRepo),
@@ -120,7 +120,7 @@ func main() {
 	})
 
 	server := http.Server{
-		Addr:    host + ":" + port,
+		Addr: host + ":" + port,
 		// Handler: corsHandler.Handler(middleware.RequestLogger(router)),
 		Handler: corsHandler.Handler(router),
 	}

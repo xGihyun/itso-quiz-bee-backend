@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/xGihyun/itso-quiz-bee/internal/ws"
 )
 
@@ -12,10 +13,14 @@ type webSocketServer struct {
 	timerManager *timerManager
 }
 
-func NewWebSocketServer(repo Repository, wsHub *ws.Hub) *webSocketServer {
+func NewWebSocketServer(
+	repo Repository,
+	wsHub *ws.Hub,
+	redisClient *redis.Client,
+) *webSocketServer {
 	return &webSocketServer{
 		repo:         repo,
-		timerManager: NewTimerManager(wsHub),
+		timerManager: NewTimerManager(wsHub, redisClient),
 	}
 }
 
@@ -62,9 +67,9 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 			return ws.Response{}, err
 		}
 
-		if question.Duration != nil {
-			go s.timerManager.handleTimer(data.QuizID)
-			s.timerManager.startTimer(data.QuizID, *question.Duration)
+		if question.Question.Duration != nil {
+			go s.timerManager.handleTimer(ctx, data.QuizID)
+			s.timerManager.startTimer(data.QuizID, *question.Question.Duration)
 		}
 
 		return ws.Response{
