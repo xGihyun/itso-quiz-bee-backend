@@ -66,13 +66,13 @@ func NewTimerManager(hub *ws.Hub, redisClient *redis.Client) *timerManager {
 }
 
 func (tm *timerManager) startTimer(quizID string, duration int) {
-	dur := time.Second * time.Duration(duration)
-	timer := NewTimer(dur)
 	prevTimer := tm.timers[quizID]
 	if prevTimer != nil && prevTimer.current != nil {
 		prevTimer.current.Stop()
 	}
 
+	dur := time.Second * time.Duration(duration)
+	timer := NewTimer(dur)
 	tm.timers[quizID] = timer
 	timer.start()
 }
