@@ -1,0 +1,20 @@
+meta {
+  name: http://localhost:3002
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://{{host}}/api/reporters/{{reporterId}}/reports
+  body: none
+  auth: inherit
+}
+
+vars:pre-request {
+  host: localhost:3002
+  reporterId: a5a594c2-1e6f-4c6b-af32-4ba9241b33f6
+}
+
+settings {
+  encodeUrl: true
+}
