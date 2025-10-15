@@ -127,7 +127,9 @@ func main() {
 
 	log.Info().Msg(fmt.Sprintf("Starting server on port: %s", port))
 
-	server.ListenAndServe()
+	if err := server.ListenAndServe(); err != nil {
+		log.Err(err).Send()
+	}
 }
 
 func health(w http.ResponseWriter, r *http.Request) {
