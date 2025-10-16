@@ -2,6 +2,8 @@ package quiz
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/xGihyun/itso-quiz-bee/internal/database"
@@ -21,22 +23,9 @@ func (r *repository) AddPlayer(
 	if err != nil {
 		return user.UserResponse{}, err
 	}
-
 	var u user.UserResponse
-
 	err = database.Transaction(ctx, tx, func() error {
 		sql := `
-        INSERT INTO players_in_quizzes (user_id, quiz_id)
-        VALUES ($1, $2)
-        ON CONFLICT(user_id, quiz_id)
-        DO NOTHING
-        `
-
-		if _, err := tx.Exec(ctx, sql, data.UserID, data.QuizID); err != nil {
-			return err
-		}
-
-		sql = `
         SELECT 
             user_id, 
             created_at,
@@ -44,21 +33,32 @@ func (r *repository) AddPlayer(
             role,
             name,
             avatar_url
-        FROM users WHERE user_id = ($1)
+        FROM users 
+        WHERE user_id = ($1) AND role = 'player'
         `
-
-		row := r.querier.QueryRow(ctx, sql, data.UserID)
-
+		row := tx.QueryRow(ctx, sql, data.UserID)
 		if err := row.Scan(&u.UserID, &u.CreatedAt, &u.Username, &u.Role, &u.Name, &u.AvatarURL); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return fmt.Errorf("user not found or not a player")
+			}
 			return err
 		}
 
-		return err
+		sql = `
+        INSERT INTO players_in_quizzes (user_id, quiz_id)
+        VALUES ($1, $2)
+        ON CONFLICT(user_id, quiz_id)
+        DO NOTHING
+        `
+		if _, err := tx.Exec(ctx, sql, data.UserID, data.QuizID); err != nil {
+			return err
+		}
+
+		return nil
 	})
 	if err != nil {
-		return user.UserResponse{}, nil
+		return user.UserResponse{}, err
 	}
-
 	return u, nil
 }
 
