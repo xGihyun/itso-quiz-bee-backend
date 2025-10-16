@@ -34,28 +34,28 @@ func (r *repository) GetCurrentQuestion(
 	if err != nil {
 		return currentQuestion{}, err
 	}
-
-	var question Question
-	if err := json.Unmarshal([]byte(data), &question); err != nil {
+	
+	// FIX: Unmarshal into currentQuestion, not Question
+	var curQuestion currentQuestion
+	if err := json.Unmarshal([]byte(data), &curQuestion); err != nil {
 		return currentQuestion{}, err
 	}
-
+	
+	// Get the interval separately
 	intervalKey := fmt.Sprintf("quiz:%s:current_question_interval", quizID)
 	data, err = r.redisClient.JSONGet(ctx, intervalKey).Result()
 	if err != nil {
 		return currentQuestion{}, err
 	}
-
+	
 	var interval interval
 	if err := json.Unmarshal([]byte(data), &interval); err != nil {
 		return currentQuestion{}, err
 	}
-
-	curQuestion := currentQuestion{
-		Question: question,
-		Interval: interval,
-	}
-
+	
+	// Set the interval on the current question
+	curQuestion.Interval = interval
+	
 	return curQuestion, nil
 }
 
