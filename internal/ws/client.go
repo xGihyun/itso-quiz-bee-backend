@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
@@ -13,7 +14,7 @@ import (
 type Event string
 
 const (
-	QuizUpdateStatus     Event = "quiz-update-status"
+	QuizUpdateStatus Event = "quiz-update-status"
 	// QuizStart            Event = "quiz-start"
 	// QuizPause            Event = "quiz-pause"
 	// QuizResume           Event = "quiz-resume"
@@ -26,6 +27,8 @@ const (
 
 	QuizStartTimer Event = "quiz-start-timer"
 	QuizTimerPass  Event = "quiz-timer-pass"
+
+	PlayerFocusChange Event = "player-focus-change"
 
 	UserJoin  Event = "user-join"
 	UserLeave Event = "user-leave"
@@ -77,6 +80,13 @@ type (
 	QuizSelectAnswerRequest quiz.NewSelectedAnswer
 	QuizTypeAnswerRequest   quiz.NewWrittenAnswerRequest
 )
+
+type PlayerFocusChangeRequest struct {
+	QuizID    string    `json:"quiz_id"`
+	IsFocused bool      `json:"is_focused"`
+	Reason    string    `json:"reason"`
+	Occurred  time.Time `json:"occurred_at"`
+}
 
 func (c *Client) Read() {
 	defer func() {
@@ -206,6 +216,28 @@ func (c *Client) Read() {
 
 		case QuizTypeAnswer:
 			log.Info().Msg("Answer typed.")
+			break
+
+		case PlayerFocusChange:
+			var data PlayerFocusChangeRequest
+
+			if err := json.Unmarshal(request.Data, &data); err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			if data.Occurred.IsZero() {
+				data.Occurred = time.Now().UTC()
+			}
+
+			msg, err := json.Marshal(data)
+			if err != nil {
+				log.Error().Err(err).Send()
+				return
+			}
+
+			request.Data = msg
+			log.Warn().Msg(fmt.Sprintf("Focus change: %s (%t)", c.ID, data.IsFocused))
 			break
 
 		case UserJoin:
