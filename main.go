@@ -29,8 +29,9 @@ type app struct {
 func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 
+	// Try to load .env file, but don't fail if it doesn't exist (Docker will provide env vars)
 	if err := godotenv.Load(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to load env file.")
+		log.Warn().Err(err).Msg("Could not load .env file, using environment variables instead.")
 	}
 
 	dbUrl, ok := os.LookupEnv("DATABASE_URL")
@@ -112,8 +113,16 @@ func main() {
 		api.HTTPHandler(app.quiz.GetCurrentQuestion),
 	)
 
+	// Build allowed origins for both localhost and docker internal network
+	allowedOrigins := []string{
+		"http://localhost:" + frontendPort,
+		"http://127.0.0.1:" + frontendPort,
+		"http://frontend:" + frontendPort,        // Docker internal hostname
+		"http://itso-quiz-bee-web:" + frontendPort, // Docker container name
+	}
+
 	corsHandler := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://" + host + ":" + frontendPort},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 		AllowCredentials: true,

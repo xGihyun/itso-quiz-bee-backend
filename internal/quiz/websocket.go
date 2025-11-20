@@ -36,7 +36,16 @@ const (
 	playerLeave        ws.Event = "quiz:player-leave"
 	playerTypeAnswer   ws.Event = "quiz:player-type-answer"
 	playerSubmitAnswer ws.Event = "quiz:player-submit-answer"
+	playerFocusWarning ws.Event = "quiz:player-focus-warning"
 )
+
+type playerFocusViolationRequest struct {
+	QuizID     string `json:"quizId"`
+	UserID     string `json:"userId"`
+	Reason     string `json:"reason"`
+	OccurredAt string `json:"occurredAt"`
+	Attempt    int    `json:"attempt"`
+}
 
 func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Response, error) {
 	switch request.Event {
@@ -142,6 +151,18 @@ func (s *webSocketServer) Handle(ctx context.Context, request ws.Request) (ws.Re
 			Event:  request.Event,
 			Target: ws.All,
 			Data:   user,
+		}, nil
+
+	case playerFocusWarning:
+		var data playerFocusViolationRequest
+		if err := json.Unmarshal(request.Data, &data); err != nil {
+			return ws.Response{}, err
+		}
+
+		return ws.Response{
+			Event:  request.Event,
+			Target: ws.Admins,
+			Data:   data,
 		}, nil
 	}
 
