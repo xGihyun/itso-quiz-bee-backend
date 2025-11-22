@@ -119,6 +119,7 @@ func main() {
 		"http://127.0.0.1:" + frontendPort,
 		"http://frontend:" + frontendPort,        // Docker internal hostname
 		"http://itso-quiz-bee-web:" + frontendPort, // Docker container name
+		"http://192.168.55.101:" + frontendPort, // Docker container name
 	}
 
 	corsHandler := cors.New(cors.Options{
