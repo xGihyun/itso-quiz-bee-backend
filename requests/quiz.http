@@ -1,0 +1,36 @@
+@hostname=localhost
+@port=3002
+@host={{hostname}}:{{port}}
+
+###
+
+# @name Get Quizzes
+GET http://{{host}}/api/quizzes
+
+### 
+
+# @name Get Quiz
+@quizId=b72e79d4-68a7-4416-907f-3b08f8bc1cf7
+GET http://{{host}}/api/quizzes/{{quizId}}
+
+### 
+
+# @name Get Players
+@quizId=b72e79d4-68a7-4416-907f-3b08f8bc1cf7
+GET http://{{host}}/api/quizzes/{{quizId}}/players
+
+### 
+
+# @name Get Current Question
+@quizId=b72e79d4-68a7-4416-907f-3b08f8bc1cf7
+GET http://{{host}}/api/quizzes/{{quizId}}/current-question
+
+### 
+
+# @name WebSocket
+@token=DNCAEYPNOCYBYUXQEMFBHY6AGAVMB54M
+WS ws://{{host}}/ws?token={{token}}
+
+{ "event": "quiz:update-question", "data":  { "quizId": "b72e79d4-68a7-4416-907f-3b08f8bc1cf7", "quizQuestionId": "b1b826f4-d6e9-4057-b73f-e408f06f6568" } }
+
+###

@@ -2,120 +2,95 @@ package quiz
 
 import (
 	"context"
-	"time"
-)
-
-type QuestionVariant string
-
-const (
-	MultipleChoice QuestionVariant = "multiple-choice"
-	Boolean        QuestionVariant = "boolean"
-	Written        QuestionVariant = "written"
+	"encoding/json"
+	"fmt"
 )
 
 type Question struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	OrderNumber    int16           `json:"order_number"`
-	Answers        []Answer        `json:"answers"`
-	Duration       *time.Duration  `json:"duration"`
+	QuizQuestionID string   `json:"quizQuestionId"`
+	Content        string   `json:"content"`
+	Points         int16    `json:"points"`
+	OrderNumber    int16    `json:"orderNumber"`
+	Duration       *int     `json:"duration"`
+	Answers        []Answer `json:"answers,omitempty"`
 }
 
-type NewQuestion struct {
-	QuizQuestionID string          `json:"quiz_question_id"`
-	Content        string          `json:"content"`
-	Variant        QuestionVariant `json:"variant"`
-	Points         int16           `json:"points"`
-	// OrderNumber int16           `json:"order_number"`
-	Answers  []NewAnswer    `json:"answers"`
-	Duration *time.Duration `json:"duration"`
+type Answer struct {
+	QuizAnswerID string `json:"quizAnswerId"`
+	Content      string `json:"content"`
 }
 
-func (dr *DatabaseRepository) CreateQuestion(ctx context.Context, question NewQuestion, quizID string, orderNumber int) error {
-	sql := `
-	INSERT INTO quiz_questions (quiz_question_id, content, variant, points, order_number, duration, quiz_id)
-	VALUES 
-		($1, $2, $3, $4, $5, 
-			CASE WHEN $6 IS NOT NULL
-			THEN make_interval(secs => $6)
-			ELSE NULL
-			END
-		$7)
-	ON CONFLICT(quiz_question_id)
-	DO UPDATE SET
-		content = ($2),
-		variant = ($3),
-		points = ($4),
-		order_number = ($5),
-		duration = 
-			CASE WHEN $6 IS NOT NULL
-			THEN make_interval(secs => $6)
-			ELSE NULL
-			END
-	RETURNING quiz_question_id
-	`
+type currentQuestion struct {
+	Question Question `json:"question"`
+	Interval interval `json:"interval,omitzero"`
+}
 
-	row := dr.Querier.QueryRow(ctx, sql, question.QuizQuestionID, question.Content, question.Variant, question.Points, orderNumber, question.Duration, quizID)
-
-	var questionID string
-
-	if err := row.Scan(&questionID); err != nil {
-		return err
+func (r *repository) GetCurrentQuestion(
+	ctx context.Context,
+	quizID string,
+) (currentQuestion, error) {
+	questionKey := fmt.Sprintf("quiz:%s:current_question", quizID)
+	data, err := r.redisClient.JSONGet(ctx, questionKey).Result()
+	if err != nil {
+		return currentQuestion{}, err
 	}
-
-	for _, answer := range question.Answers {
-		if err := dr.CreateAnswer(ctx, answer, questionID); err != nil {
-			return err
-		}
+	
+	// FIX: Unmarshal into currentQuestion, not Question
+	var curQuestion currentQuestion
+	if err := json.Unmarshal([]byte(data), &curQuestion); err != nil {
+		return currentQuestion{}, err
 	}
-
-	return nil
+	
+	// Get the interval separately
+	intervalKey := fmt.Sprintf("quiz:%s:current_question_interval", quizID)
+	data, err = r.redisClient.JSONGet(ctx, intervalKey).Result()
+	if err != nil {
+		return currentQuestion{}, err
+	}
+	
+	var interval interval
+	if err := json.Unmarshal([]byte(data), &interval); err != nil {
+		return currentQuestion{}, err
+	}
+	
+	// Set the interval on the current question
+	curQuestion.Interval = interval
+	
+	return curQuestion, nil
 }
 
-type GetCurrentQuestionRequest struct {
-	UserID string `json:"user_id"`
-	QuizID string `json:"quiz_id"`
+type setCurrentQuestionRequest struct {
+	QuizID         string `json:"quizId"`
+	QuizQuestionID string `json:"quizQuestionId"`
 }
 
-func (dr *DatabaseRepository) GetCurrentQuestion(ctx context.Context, quizID string) (Question, error) {
+func (r *repository) setCurrentQuestion(
+	ctx context.Context,
+	data setCurrentQuestionRequest,
+) (currentQuestion, error) {
 	sql := `
-	SELECT 
-		jsonb_build_object(
-			'quiz_question_id', quiz_questions.quiz_question_id,
-			'content', quiz_questions.content,
-			'variant', quiz_questions.variant,
-			'points', quiz_questions.points,
-			'order_number', quiz_questions.order_number,
-			'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
-			'answers', (
-				SELECT jsonb_agg(
-					jsonb_build_object(
-						'quiz_answer_id', quiz_answers.quiz_answer_id,
-						'content', quiz_answers.content,
-						'is_correct', quiz_answers.is_correct
-					)
-				)
-				FROM quiz_answers
-				WHERE quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
-			)
-		) AS question
+	SELECT quiz_question_id, content, points, order_number, 
+		extract(epoch FROM duration)::int as duration
 	FROM quiz_questions
-	JOIN users_in_quizzes ON users_in_quizzes.quiz_question_id = quiz_questions.quiz_question_id
-	WHERE users_in_quizzes.quiz_id = ($1)
+	WHERE quiz_question_id = ($1)
 	`
 
-	row := dr.Querier.QueryRow(ctx, sql, quizID)
-
-	var question Question
-
-	if err := row.Scan(&question); err != nil {
-		return Question{}, err
+	var question currentQuestion
+	row := r.querier.QueryRow(ctx, sql, data.QuizQuestionID)
+	if err := row.Scan(
+		&question.Question.QuizQuestionID,
+		&question.Question.Content,
+		&question.Question.Points,
+		&question.Question.OrderNumber,
+		&question.Question.Duration,
+	); err != nil {
+		return currentQuestion{}, err
 	}
 
-	// NOTE: Just to make sure the answers don't get leaked xD
-	question.Answers = []Answer{}
+	questionKey := fmt.Sprintf("quiz:%s:current_question", data.QuizID)
+	if err := r.redisClient.JSONSet(ctx, questionKey, "$", question).Err(); err != nil {
+		return currentQuestion{}, err
+	}
 
 	return question, nil
 }

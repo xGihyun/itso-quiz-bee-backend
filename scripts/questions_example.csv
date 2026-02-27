@@ -1,0 +1,5 @@
+quiz_name,question_number,question_text,question_type,points,duration_seconds,answer1,answer2,answer3,answer4
+Geography Quiz,1,What is the capital of France?,multiple-choice,10,60,Paris,London,Berlin,Madrid
+Geography Quiz,2,What is 2 + 2?,multiple-choice,5,45,3,4,5,6
+Geography Quiz,3,Is the Earth round?,boolean,5,30,true,false,,
+Geography Quiz,4,Explain photosynthesis in one sentence.,written,15,120,,,,

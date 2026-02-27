@@ -4,287 +4,116 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/xGihyun/itso-quiz-bee/internal/quiz"
+
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
 type Event string
 
-const (
-	QuizUpdateStatus Event = "quiz-update-status"
-	// QuizStart            Event = "quiz-start"
-	// QuizPause            Event = "quiz-pause"
-	// QuizResume           Event = "quiz-resume"
-	// QuizEnd              Event = "quiz-end"
-	QuizChangeQuestion   Event = "quiz-change-question"
-	QuizSubmitAnswer     Event = "quiz-submit-answer"
-	QuizSelectAnswer     Event = "quiz-select-answer"
-	QuizTypeAnswer       Event = "quiz-type-answer"
-	QuizDisableAnswering Event = "quiz-disable-answering"
-
-	QuizStartTimer Event = "quiz-start-timer"
-	QuizTimerPass  Event = "quiz-timer-pass"
-
-	PlayerFocusChange Event = "player-focus-change"
-
-	UserJoin  Event = "user-join"
-	UserLeave Event = "user-leave"
-	Heartbeat Event = "heartbeat"
-)
-
 type Request struct {
-	Event  Event           `json:"event"`
-	Data   json.RawMessage `json:"data"`
-	UserID string          `json:"user_id"`
+	Event Event           `json:"event"`
+	Data  json.RawMessage `json:"data"`
 }
 
-type Client struct {
-	Pool *Pool
-	Conn *websocket.Conn
-	ID   string
-
-	repo DatabaseRepository
+type Response struct {
+	Event  Event          `json:"event"`
+	Data   any            `json:"data"`
+	Target DelivaryTarget `json:"-"`
 }
 
-type QuizUpdateStatusRequest struct {
-	quiz.UpdateStatusRequest
-	QuizQuestionID *string `json:"quiz_question_id,omitempty"`
-}
+type DelivaryTarget int
 
-// type QuizStartRequest struct {
-// 	quiz.UpdateStatusRequest
-// 	QuizQuestionID string `json:"quiz_question_id"`
-// }
-
-type QuizChangeQuestionRequest struct {
-	QuizID string `json:"quiz_id"`
-	quiz.Question
-}
-
-type QuizJoinRequest struct {
-	QuizID string `json:"quiz_id"`
-}
-
-type QuizSubmitAnswerRequest struct {
-	UserID         string               `json:"user_id"`
-	QuizID         string               `json:"quiz_id"`
-	QuizQuestionID string               `json:"quiz_question_id"`
-	Variant        quiz.QuestionVariant `json:"variant"`
-	Answer         json.RawMessage      `json:"answer"`
-}
-
-type (
-	QuizSelectAnswerRequest quiz.NewSelectedAnswer
-	QuizTypeAnswerRequest   quiz.NewWrittenAnswerRequest
+const (
+	All DelivaryTarget = iota
+	Admins
+	SenderAndAdmins
 )
 
-type PlayerFocusChangeRequest struct {
-	QuizID    string    `json:"quiz_id"`
-	IsFocused bool      `json:"is_focused"`
-	Reason    string    `json:"reason"`
-	Occurred  time.Time `json:"occurred_at"`
+type client struct {
+	hub  *Hub
+	conn *websocket.Conn
+	user user.UserResponse
+	send chan Response
+
+	handlers map[string]EventHandler
 }
 
-func (c *Client) Read() {
+func NewClient(
+	conn *websocket.Conn,
+	hub *Hub,
+	user user.UserResponse,
+	handlers map[string]EventHandler,
+) *client {
+	return &client{
+		conn:     conn,
+		hub:      hub,
+		user:     user,
+		handlers: handlers,
+		send:     make(chan Response),
+	}
+}
+
+func (c *client) readPump(ctx context.Context) {
 	defer func() {
-		c.Pool.Unregister <- c
-		c.Conn.Close()
+		c.hub.unregister <- c
+		c.conn.Close()
 	}()
 
-	ctx := context.Background()
-
-	quizRepo := quiz.NewDatabaseRepository(c.repo.Querier)
-
 	for {
-		_, data, err := c.Conn.ReadMessage()
+		_, data, err := c.conn.ReadMessage()
 		if err != nil {
 			log.Error().Err(err).Send()
 			return
 		}
 
 		var request Request
-
 		if err := json.Unmarshal(data, &request); err != nil {
 			log.Error().Err(err).Send()
-			return
+			continue
 		}
 
-		request.UserID = c.ID
+		s := strings.Split(string(request.Event), ":")
+		key := s[0]
 
-		switch request.Event {
-		case QuizUpdateStatus:
-			var data QuizUpdateStatusRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateStatusByID(ctx, quiz.UpdateStatusRequest{QuizID: data.QuizID, Status: data.Status}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if data.Status == quiz.Started && data.QuizQuestionID != nil {
-				if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
-					QuizID:         data.QuizID,
-					QuizQuestionID: *data.QuizQuestionID,
-				}); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-			}
-
-			log.Info().Msg(fmt.Sprintf("Quiz status updated: %s", data.Status))
-			break
-
-		case QuizChangeQuestion:
-			var data QuizChangeQuestionRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.UpdateCurrentQuestion(ctx, quiz.UpdateCurrentQuestionRequest{
-				QuizID:         data.QuizID,
-				QuizQuestionID: data.QuizQuestionID,
-			}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			log.Info().Msg("Change question.")
-			break
-
-		case QuizSubmitAnswer:
-			var data QuizSubmitAnswerRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			switch data.Variant {
-			case quiz.MultipleChoice, quiz.Boolean:
-				var answer quiz.NewSelectedAnswer
-
-				if err := json.Unmarshal(data.Answer, &answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				answer.UserID = c.ID
-
-				if err := quizRepo.CreateSelectedAnswer(ctx, answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				log.Info().Msg("Submitted multiple choice answer.")
-				break
-			case quiz.Written:
-				var answer quiz.NewWrittenAnswerRequest
-
-				if err := json.Unmarshal(data.Answer, &answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				answer.UserID = c.ID
-
-				if err := quizRepo.CreateWrittenAnswer(ctx, answer); err != nil {
-					log.Error().Err(err).Send()
-					return
-				}
-
-				log.Info().Msg("Submitted written answer.")
-				break
-
-			default:
-				log.Warn().Msg("Invalid question variant.")
-			}
-
-			break
-
-		case QuizSelectAnswer:
-			log.Info().Msg("Answer selected.")
-			break
-
-		case QuizTypeAnswer:
-			log.Info().Msg("Answer typed.")
-			break
-
-		case PlayerFocusChange:
-			var data PlayerFocusChangeRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if data.Occurred.IsZero() {
-				data.Occurred = time.Now().UTC()
-			}
-
-			msg, err := json.Marshal(data)
-			if err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			request.Data = msg
-			log.Warn().Msg(fmt.Sprintf("Focus change: %s (%t)", c.ID, data.IsFocused))
-			break
-
-		case UserJoin:
-			log.Info().Msg("User Join!")
-
-			var data QuizJoinRequest
-
-			if err := json.Unmarshal(request.Data, &data); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			if err := quizRepo.Join(ctx, quiz.JoinRequest{
-				UserID: c.ID,
-				QuizID: data.QuizID,
-			}); err != nil {
-				log.Error().Err(err).Send()
-				return
-			}
-
-			user, err := quizRepo.GetUser(ctx, c.ID)
-			if err != nil {
-				log.Error().Err(err).Send()
-			}
-
-			log.Info().Msg(fmt.Sprintf("%s", user.FirstName))
-
-			msg, err := json.Marshal(user)
-			if err != nil {
-				log.Error().Err(err).Send()
-			}
-			request.Data = msg
-
-			log.Info().Msg(fmt.Sprintf("%s %s has joined.", user.FirstName, user.LastName))
-			break
-
-		case Heartbeat:
-			log.Info().Msg("Heartbeat!")
-			break
-
-		default:
-			log.Warn().Msg(fmt.Sprintf("Unknown request event: %s", request.Event))
+		handler, ok := c.handlers[key]
+		if !ok {
+			log.Warn().Msg("handler not found for: " + key)
+			continue
 		}
 
-		log.Info().Msg(fmt.Sprintf("Received: %s\n", request))
+		response, err := handler.Handle(ctx, request)
+		if err != nil {
+			log.Error().Err(err).Send()
+			continue
+		}
 
-		c.Pool.Broadcast <- request
+		switch response.Target {
+		case All:
+			c.hub.SendToAll(response)
+		case Admins:
+			c.hub.SendToRole(user.Admin, response)
+		}
+	}
+}
 
+func (c *client) writePump() {
+	defer c.conn.Close()
+
+	for {
+		select {
+		case message, ok := <-c.send:
+			if !ok {
+				log.Error().Msg("hub closed channel")
+				return
+			}
+
+			if err := c.conn.WriteJSON(message); err != nil {
+				log.Error().Err(fmt.Errorf("websocket write json: %w", err)).Send()
+			}
+		}
 	}
 }

@@ -1,0 +1,15 @@
+@hostname=localhost
+@port=3002
+@host={{hostname}}:{{port}}
+
+### 
+
+# @name Admin Sign In
+POST http://{{host}}/api/sign-in
+Accept: application/json
+Content-Type: application/json
+
+{
+  "username": "adminuser",
+  "password": "password"
+}

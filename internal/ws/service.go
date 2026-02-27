@@ -1,33 +1,29 @@
 package ws
 
 import (
-	// "context"
+	"context"
 
-	"github.com/xGihyun/itso-quiz-bee/internal/database"
+	"github.com/xGihyun/itso-quiz-bee/internal/user"
 )
 
+type EventHandler interface {
+	Handle(ctx context.Context, request Request) (Response, error)
+}
+
 type Service struct {
-	repo DatabaseRepository
-	pool *Pool
+	hub      *Hub
+	handlers map[string]EventHandler
+	userRepo user.Repository
 }
 
-type Repository interface {
-	// HandleConnection()
-}
-
-type DatabaseRepository struct {
-	Querier database.Querier
-}
-
-func NewDatabaseRepository(q database.Querier) *DatabaseRepository {
-	return &DatabaseRepository{
-		Querier: q,
-	}
-}
-
-func NewService(repo DatabaseRepository, pool *Pool) *Service {
+func NewService(
+	hub *Hub,
+	handlers map[string]EventHandler,
+	userRepo user.Repository,
+) *Service {
 	return &Service{
-		repo: repo,
-		pool: pool,
+		hub:      hub,
+		handlers: handlers,
+		userRepo: userRepo,
 	}
 }

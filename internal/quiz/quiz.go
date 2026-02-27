@@ -2,104 +2,43 @@ package quiz
 
 import (
 	"context"
+	"fmt"
+	"time"
 
-	sq "github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
+	"github.com/xGihyun/itso-quiz-bee/internal/database"
 )
 
-type Status string
-
-const (
-	Open    Status = "open"
-	Started Status = "started"
-	Paused  Status = "paused"
-	Closed  Status = "closed"
-)
-
-type NewQuizRequest struct {
-	BasicInfo
-	Questions []NewQuestion `json:"questions"`
+type BasicInfo struct {
+	QuizID      string    `json:"quizId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description"`
+	Status      Status    `json:"status"`
 }
 
-// TODO: Use transactions
-func (dr *DatabaseRepository) Create(ctx context.Context, data NewQuizRequest) error {
-	sql := `
-    INSERT INTO quizzes (quiz_id, name, description, status, lobby_id)
-    VALUES ($1, $2, $3, $4, $5)
-	ON CONFLICT(quiz_id)
-	DO UPDATE SET
-		name = ($2),
-		description = ($3),
-		status = ($4),
-		lobby_id = ($5)
-    RETURNING quiz_id
-    `
-
-	// NOTE: This `tx` won't work
-	tx, err := dr.Querier.Begin(ctx)
-	defer tx.Rollback(ctx)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = dr.Querier.Exec(ctx, sql, data.QuizID, data.Name, data.Description, data.Status, data.LobbyID)
-	if err != nil {
-		return err
-	}
-
-	for i, question := range data.Questions {
-		if err := dr.CreateQuestion(ctx, question, data.QuizID, i+1); err != nil {
-			return err
-		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type QuizResponse struct {
+type Quiz struct {
 	BasicInfo
 	Questions []Question `json:"questions"`
 }
 
-type Answer struct {
-	QuizAnswerID string `json:"quiz_answer_id"`
-	Content      string `json:"content"`
-	IsCorrect    bool   `json:"is_correct"`
-}
-
-func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizResponse, error) {
+func (r *repository) Get(ctx context.Context, quizID string, includeAnswers bool) (Quiz, error) {
 	sql := `
 	SELECT 
 		quizzes.quiz_id, 
+		quizzes.created_at, 
 		quizzes.name, 
 		quizzes.description,
-		quizzes.lobby_id,
 		quizzes.status,
 		(
 			SELECT jsonb_agg(
 				jsonb_build_object(
-					'quiz_question_id', quiz_questions.quiz_question_id,
+					'quizQuestionId', quiz_questions.quiz_question_id,
 					'content', quiz_questions.content,
-					'variant', quiz_questions.variant,
 					'points', quiz_questions.points,
-					'order_number', quiz_questions.order_number,
-					'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT,
-					'answers', (
-						SELECT jsonb_agg(
-							jsonb_build_object(
-								'quiz_answer_id', quiz_answers.quiz_answer_id,
-								'content', quiz_answers.content,
-								'is_correct', quiz_answers.is_correct
-							)
-						)
-						FROM quiz_answers
-						WHERE quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
-					)
+					'orderNumber', quiz_questions.order_number,
+					'duration', EXTRACT(epoch FROM quiz_questions.duration)::INT
+					%s
 				)
 			)
 			FROM quiz_questions
@@ -109,34 +48,74 @@ func (dr *DatabaseRepository) GetByID(ctx context.Context, quizID string) (QuizR
 	WHERE quizzes.quiz_id = ($1)
 	`
 
-	row := dr.Querier.QueryRow(ctx, sql, quizID)
+	var answersSql string
+	if includeAnswers {
+		answersSql = `
+		,
+		'answers', (
+			SELECT jsonb_agg(
+				jsonb_build_object(
+					'quizAnswerId', quiz_answers.quiz_answer_id,
+					'content', quiz_answers.content
+				)
+			)
+			FROM quiz_answers
+			WHERE quiz_answers.quiz_question_id = quiz_questions.quiz_question_id
+		)
+		`
+	}
 
-	var quiz QuizResponse
+	sql = fmt.Sprintf(sql, answersSql)
 
-	if err := row.Scan(&quiz.QuizID, &quiz.Name, &quiz.Description, &quiz.LobbyID, &quiz.Status, &quiz.Questions); err != nil {
-		return QuizResponse{}, err
+	var quiz Quiz
+
+	row := r.querier.QueryRow(ctx, sql, quizID)
+	if err := row.Scan(
+		&quiz.QuizID,
+		&quiz.CreatedAt,
+		&quiz.Name,
+		&quiz.Description,
+		&quiz.Status,
+		&quiz.Questions,
+	); err != nil {
+		return Quiz{}, err
 	}
 
 	return quiz, nil
 }
 
-type BasicInfo struct {
-	QuizID      string         `json:"quiz_id"`
-	Name        string         `json:"name"`
-	Description *string        `json:"description"`
-	Status      Status         `json:"status"`
-	LobbyID     *string        `json:"lobby_id"`
+func (r *repository) GetBasicInfo(ctx context.Context, quizID string) (BasicInfo, error) {
+	sql := `
+	SELECT quiz_id, created_at, name, description, status
+	FROM quizzes
+	WHERE quiz_id = ($1)
+	`
+
+	var quiz BasicInfo
+
+	row := r.querier.QueryRow(ctx, sql, quizID)
+	if err := row.Scan(
+		&quiz.QuizID,
+		&quiz.CreatedAt,
+		&quiz.Name,
+		&quiz.Description,
+		&quiz.Status,
+	); err != nil {
+		return BasicInfo{}, nil
+	}
+
+	return quiz, nil
 }
 
-func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
+func (r *repository) ListBasicInfo(ctx context.Context) ([]BasicInfo, error) {
 	sql := `
-	SELECT quiz_id, name, description, lobby_id, status
+	SELECT quiz_id, created_at, name, description, status
 	FROM quizzes
 	`
 
-	rows, err := dr.Querier.Query(ctx, sql)
+	rows, err := r.querier.Query(ctx, sql)
 	if err != nil {
-		return nil, err
+		return []BasicInfo{}, err
 	}
 
 	quizzes, err := pgx.CollectRows(rows, pgx.RowToStructByName[BasicInfo])
@@ -147,35 +126,152 @@ func (dr *DatabaseRepository) GetAll(ctx context.Context) ([]BasicInfo, error) {
 	return quizzes, nil
 }
 
-func (dr *DatabaseRepository) UpdateByID(ctx context.Context, data BasicInfo) error {
+func (r *repository) Save(ctx context.Context, data Quiz) error {
 	sql := `
-	UPDATE quizzes
-	SET name = ($1), description = ($2), lobby_id = ($3), status = ($4)
-	WHERE quiz_id = ($5)
-	`
+    INSERT INTO quizzes (quiz_id, name, description, status)
+    VALUES ($1, $2, $3, $4)
+	ON CONFLICT(quiz_id)
+	DO UPDATE SET
+		name = ($2),
+		description = ($3),
+		status = ($4)
+    `
 
-	if _, err := dr.Querier.Exec(ctx, sql, data.Name, data.Description, data.LobbyID, data.Status, data.QuizID); err != nil {
+	tx, err := r.querier.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = database.Transaction(ctx, tx, func() error {
+		_, err = tx.Exec(ctx, sql, data.QuizID, data.Name, data.Description, data.Status)
+		if err != nil {
+			return err
+		}
+
+		for i, question := range data.Questions {
+			question.OrderNumber = int16(i + 1)
+			if err := createQuestion(tx, ctx, question, data.QuizID); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-type UpdateStatusRequest struct {
-	QuizID string `json:"quiz_id"`
-	Status Status `json:"status"`
-}
+func createQuestion(
+	querier database.Querier,
+	ctx context.Context,
+	question Question,
+	quizID string,
+) error {
+	sql := `
+    INSERT INTO quiz_questions (
+        quiz_question_id, 
+        content, 
+        points, 
+        order_number, 
+        duration, 
+        quiz_id
+    )
+    VALUES (
+        $1, $2, $3, $4, 
+            CASE WHEN $5::int IS NOT NULL 
+            THEN make_interval(secs => $5::int)
+            ELSE NULL
+        END,
+        $6
+    )
+    ON CONFLICT(quiz_question_id)
+    DO UPDATE SET
+        content = ($2),
+        points = ($3),
+        order_number = ($4),
+        duration = 
+            CASE WHEN $5::int IS NOT NULL 
+            THEN make_interval(secs => $5::int)
+            ELSE NULL
+            END
+    RETURNING quiz_question_id
+    `
 
-func (dr *DatabaseRepository) UpdateStatusByID(ctx context.Context, data UpdateStatusRequest) error {
-	// NOTE: Testing `squirrel` query builder
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	row := querier.QueryRow(
+		ctx,
+		sql,
+		question.QuizQuestionID,
+		question.Content,
+		question.Points,
+		question.OrderNumber,
+		question.Duration,
+		quizID,
+	)
 
-	sql, _, err := psql.Update("quizzes").Set("status", data.Status).Where("quiz_id = (?)", data.QuizID).ToSql()
-	if err != nil {
+	var questionID string
+	if err := row.Scan(&questionID); err != nil {
 		return err
 	}
 
-	if _, err := dr.Querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
+	for _, answer := range question.Answers {
+		if err := createAnswer(querier, ctx, answer, questionID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func createAnswer(
+	querier database.Querier,
+	ctx context.Context,
+	answer Answer,
+	questionID string,
+) error {
+	sql := `
+	INSERT INTO quiz_answers (quiz_answer_id, content, quiz_question_id)
+	VALUES ($1, $2, $3)
+	ON CONFLICT(quiz_answer_id)
+	DO UPDATE SET content = ($2)
+    `
+
+	if _, err := querier.Exec(
+		ctx,
+		sql,
+		answer.QuizAnswerID,
+		answer.Content,
+		questionID,
+	); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type Status string
+
+const (
+	Open    Status = "open"
+	Started Status = "started"
+	Paused  Status = "paused"
+	Closed  Status = "closed"
+)
+
+type UpdateStatusRequest struct {
+	QuizID string `json:"quizId"`
+	Status Status `json:"status"`
+}
+
+func (r *repository) UpdateStatus(ctx context.Context, data UpdateStatusRequest) error {
+	sql := `
+	UPDATE quizzes 
+	SET status = ($1)
+	WHERE quiz_id = ($2)
+	`
+
+	if _, err := r.querier.Exec(ctx, sql, data.Status, data.QuizID); err != nil {
 		return err
 	}
 
